@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0b0b0f">
-    <meta name="app-version" content="9.5">
-    <title>RampCheck</title>
-    <link rel="manifest" href="manifest.json?v=9.5">
+    <meta name="app-version" content="1.0">
+    <title>737 OPS</title>
+    <link rel="manifest" href="manifest.json?v=1.0">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
       :root {
@@ -909,9 +909,9 @@
     <main class="app-shell">
       <section class="screen app-view" id="homeView" aria-hidden="false">
         <header class="hero">
-          <span class="eyebrow">OFFLINE OPS TOOL</span>
-          <h1>RampCheck</h1>
-          <p class="subtitle">Select a module to continue.</p>
+          <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
+          <h1>737 OPS</h1>
+          <p class="subtitle">Select a B737 module to continue.</p>
         </header>
 
         <section class="home-menu" aria-label="Module menu">
@@ -924,13 +924,13 @@
             <span class="menu-button-note">Pavement compatibility module</span>
           </button>
           <button class="menu-button" type="button" id="openTripInfoBtn">
-            <span class="menu-button-title">TRIP INFO</span>
+            <span class="menu-button-title">TRIP INFO B737</span>
           </button>
         </section>
 
         <div class="home-logo-wrap">
           <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-          <span class="home-version">9.5</span>
+          <span class="home-version">1.0</span>
         </div>
       </section>
 
@@ -943,7 +943,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">9.5</span>
+              <span class="module-version-badge">1.0</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -952,21 +952,6 @@
           </header>
 
           <form id="fuel-form" class="stack" novalidate>
-            <div class="card stack">
-              <div class="field">
-                <div class="segmented" role="radiogroup" aria-label="Aircraft selector">
-                  <label>
-                    <input type="radio" name="aircraft" value="B787" checked>
-                    <span class="segment">B787</span>
-                  </label>
-                  <label>
-                    <input type="radio" name="aircraft" value="B737">
-                    <span class="segment">B737</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
             <div class="card stack">
               <div class="row two-col">
                 <div class="field">
@@ -1067,7 +1052,7 @@
         <section class="screen" id="results-screen" hidden>
           <div id="results-banner" class="results-banner fail" aria-live="polite">
             <p class="banner-label" id="banner-label">FAIL</p>
-            <h2 class="banner-title" id="banner-title">B787</h2>
+            <h2 class="banner-title" id="banner-title">B737</h2>
             <p class="banner-subtitle" id="banner-subtitle">Outside tolerance</p>
           </div>
 
@@ -1083,542 +1068,6 @@
         </section>
       </section>
 
-      <section class="screen app-view" id="tripInfoSelectorView" hidden aria-hidden="true">
-        <div class="module-nav">
-          <button class="button module-back" type="button" id="backFromTripInfoSelectorBtn">Back</button>
-        </div>
-
-        <header class="hero">
-          <div class="module-header-row">
-            <h1>TRIP INFO</h1>
-            <span class="module-version-badge">9.5</span>
-          </div>
-        </header>
-
-        <section class="home-menu" aria-label="Trip Info aircraft selector">
-          <button class="menu-button" type="button" id="openTripInfoB787Btn">
-            <span class="menu-button-title">B787</span>
-          </button>
-          <button class="menu-button" type="button" id="openTripInfoB737Btn">
-            <span class="menu-button-title">B737</span>
-          </button>
-        </section>
-      </section>
-
-      <section class="screen app-view" id="tripInfoView" hidden aria-hidden="true">
-        <div class="module-nav">
-          <button class="button module-back" type="button" id="backFromTripInfoBtn">Back</button>
-        </div>
-
-        <header class="hero">
-          <div class="module-header-row">
-            <h1 id="tripInfoTitle">TRIP INFO</h1>
-            <span class="module-version-badge">9.5</span>
-          </div>
-        </header>
-
-        <form id="tripInfo-form" class="stack" novalidate>
-          <section class="card stack tripInfoSectionCard">
-            <h2>Flight / Routing</h2>
-
-            <div class="field">
-              <label for="tripInfo-flight-number">Flight Number</label>
-              <input
-                id="tripInfo-flight-number"
-                name="flightNumber"
-                class="input tripInfoUppercaseField"
-                type="text"
-                autocomplete="off"
-                required
-              >
-            </div>
-
-            <div class="row two-col">
-              <div class="field">
-                <label for="tripInfo-from">From</label>
-                <input
-                  id="tripInfo-from"
-                  name="from"
-                  class="input mono tripInfoUppercaseField"
-                  type="text"
-                  inputmode="text"
-                  autocomplete="off"
-                  maxlength="3"
-                  required
-                >
-              </div>
-
-              <div class="field">
-                <label for="tripInfo-to">To</label>
-                <input
-                  id="tripInfo-to"
-                  name="to"
-                  class="input mono tripInfoUppercaseField"
-                  type="text"
-                  inputmode="text"
-                  autocomplete="off"
-                  maxlength="3"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="row two-col">
-              <div class="field tripInfoDateField">
-                <label for="tripInfo-date">Date</label>
-                <input
-                  id="tripInfo-date"
-                  name="date"
-                  class="input mono tripInfoDateInput"
-                  type="date"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-
-              <div class="field">
-                <span class="field-title">Crew</span>
-                <div class="tripInfoCrewInputs">
-                  <div class="field tripInfoCrewSubField">
-                    <label class="tripInfoCrewSubLabel" for="tripInfo-crew-pilots">Pilots</label>
-                    <input
-                      id="tripInfo-crew-pilots"
-                      name="crewPilots"
-                      class="input number-input mono"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                      value="2"
-                      autocomplete="off"
-                      required
-                    >
-                  </div>
-
-                  <div class="field tripInfoCrewSubField">
-                    <label class="tripInfoCrewSubLabel" for="tripInfo-crew-cabin">Cabin</label>
-                    <input
-                      id="tripInfo-crew-cabin"
-                      name="crewCabin"
-                      class="input number-input mono"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                      value="9"
-                      autocomplete="off"
-                      required
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row two-col tripInfoTopSideRow">
-              <div class="field" aria-hidden="true"></div>
-
-              <div class="field tripInfoAlignedField">
-                <label for="tripInfo-crew-bag">Crew Bag</label>
-                <input
-                  id="tripInfo-crew-bag"
-                  name="crewBag"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  autocomplete="off"
-                >
-
-                <div class="field tripInfoSecondaryField">
-                  <label class="tripInfoSecondaryLabel" for="tripInfo-crew-bag-weight">Bag weight</label>
-                  <div class="tripInfoSecondaryInputWrap">
-                    <input
-                      id="tripInfo-crew-bag-weight"
-                      name="crewBagWeight"
-                      class="input number-input tripInfoSecondaryInput"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                      autocomplete="off"
-                    >
-                    <span class="tripInfoSecondarySuffix">kg</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row two-col tripInfoTopSideRow">
-              <div class="field" aria-hidden="true"></div>
-
-              <div class="field tripInfoAlignedField">
-                <label for="tripInfo-pantry">Pantry</label>
-                <select
-                  id="tripInfo-pantry"
-                  name="pantry"
-                  class="select tripInfoUppercaseField"
-                >
-                  <option value="" selected></option>
-                  <option value="Z">Z - No Catering</option>
-                  <option value="SH">SH - SHORT Haul</option>
-                  <option value="MH">MH - MEDIUM Haul</option>
-                  <option value="LH">LH - LONG Haul</option>
-                  <option value="CH">CH - CHINA Flights</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row two-col tripInfoTopSideRow">
-              <div class="field" aria-hidden="true"></div>
-
-              <div class="field tripInfoControlField" id="tripInfo-fak-field">
-                <div class="field-title">FAK</div>
-                <label class="tripInfoCheckboxControl" for="tripInfo-include-fak">
-                  <input
-                    id="tripInfo-include-fak"
-                    name="includeFak"
-                    type="checkbox"
-                    checked
-                  >
-                  <span>FAK</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="row two-col tripInfoTopSideRow">
-              <div class="field" aria-hidden="true"></div>
-
-              <div class="field tripInfoAlignedField">
-                <label for="flight-type">Flight Type</label>
-                <select
-                  id="flight-type"
-                  name="flightType"
-                  class="select tripInfoUppercaseField"
-                >
-                  <option value="" selected>-- SELECT --</option>
-                  <option value="SCHED">SCHEDULE FLT</option>
-                  <option value="CHARTER">CHARTER FLT</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row two-col tripInfoTopSideRow" id="tripInfo-water-correction-field">
-              <div class="field" aria-hidden="true"></div>
-
-              <div class="field tripInfoControlField">
-                <div class="field-title">Water Correction</div>
-                <div class="tripInfoCheckboxGroup">
-                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-standard">
-                    <input
-                      id="water-standard"
-                      name="waterMode"
-                      type="radio"
-                      value="STANDARD"
-                    >
-                    <span>STANDARD</span>
-                  </label>
-                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-80">
-                    <input
-                      id="water-80"
-                      name="waterMode"
-                      type="radio"
-                      value="80"
-                    >
-                    <span>80 &rarr; 100</span>
-                  </label>
-                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-50">
-                    <input
-                      id="water-50"
-                      name="waterMode"
-                      type="radio"
-                      value="50"
-                    >
-                    <span>50 &rarr; 100</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="tripInfo-remarks-free-text">Remarks</label>
-              <textarea
-                id="tripInfo-remarks-free-text"
-                name="remarksFreeText"
-                class="input tripInfoRemarksTextarea"
-                rows="2"
-                autocomplete="off"
-              ></textarea>
-            </div>
-          </section>
-
-          <section class="card stack tripInfoSectionCard">
-            <h2>Aircraft / Crew</h2>
-
-            <div class="row two-col">
-              <div class="field">
-                <label for="tripInfo-aircraft-registration">A/C Registration</label>
-                <select
-                  id="tripInfo-aircraft-registration"
-                  name="aircraftRegistration"
-                  class="select tripInfoUppercaseField"
-                  required
-                >
-                  <option value="EI-NEO" selected>EI-NEO</option>
-                  <option value="EI-NEU">EI-NEU</option>
-                  <option value="EI-NEW">EI-NEW</option>
-                  <option value="EI-NUA">EI-NUA</option>
-                  <option value="EI-NYE">EI-NYE</option>
-                  <option value="EI-XIN">EI-XIN</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label for="tripInfo-aircraft-type">A/C Type</label>
-                <select
-                  id="tripInfo-aircraft-type"
-                  name="aircraftType"
-                  class="select tripInfoUppercaseField"
-                  required
-                >
-                  <option value="B789" selected>B789</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="tripInfo-captain-name">Captain Name</label>
-              <input
-                id="tripInfo-captain-name"
-                name="captainName"
-                class="input tripInfoUppercaseField"
-                type="text"
-                autocomplete="off"
-                required
-              >
-            </div>
-          </section>
-
-          <section class="card stack tripInfoSectionCard">
-            <h2>Weights</h2>
-
-            <div class="row two-col">
-              <div class="field">
-                <label for="tripInfo-dow">DOW</label>
-                <input
-                  id="tripInfo-dow"
-                  name="dow"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9., ]*"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-
-              <div class="field">
-                <label for="tripInfo-doi">DOI</label>
-                <input
-                  id="tripInfo-doi"
-                  name="doi"
-                  class="input number-input"
-                  type="text"
-                  inputmode="decimal"
-                  pattern="[0-9., ]*"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="row two-col">
-              <div class="field">
-                <label for="tripInfo-max-zfw">Max ZFW</label>
-                <input
-                  id="tripInfo-max-zfw"
-                  name="maxZfw"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9., ]*"
-                  value="181.436"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-
-              <div class="field">
-                <label for="tripInfo-max-tow">Max or Restricted TOW</label>
-                <input
-                  id="tripInfo-max-tow"
-                  name="maxTow"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9., ]*"
-                  value="247.207"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="tripInfo-max-ldw">Max or Restricted LDW</label>
-              <input
-                id="tripInfo-max-ldw"
-                name="maxLdw"
-                class="input number-input"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9., ]*"
-                value="192.776"
-                autocomplete="off"
-                required
-              >
-            </div>
-          </section>
-
-          <section class="card stack tripInfoSectionCard">
-            <h2>Fuel / Time</h2>
-
-            <div class="field">
-              <label for="tripInfo-trip-fuel">Trip Fuel</label>
-              <input
-                id="tripInfo-trip-fuel"
-                name="tripFuel"
-                class="input number-input"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9., ]*"
-                autocomplete="off"
-                required
-              >
-            </div>
-
-            <input
-              id="tripInfo-takeoff-fuel"
-              name="takeOffFuel"
-              type="hidden"
-            >
-
-            <div class="wrap-fuel-section">
-              <div class="field">
-                <label for="tripInfo-taxi-fuel">Taxi Fuel</label>
-                <input
-                  id="tripInfo-taxi-fuel"
-                  name="taxiFuel"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9., ]*"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-
-              <div class="field">
-                <label for="tripInfo-block-fuel">Block Fuel</label>
-                <input
-                  id="tripInfo-block-fuel"
-                  name="blockFuel"
-                  class="input number-input"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9., ]*"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="field">
-              <span class="field-title">EET</span>
-              <div class="tripInfoEetRow">
-                <div class="field">
-                  <label for="tripInfo-eet-hours">hrs</label>
-                  <input
-                    id="tripInfo-eet-hours"
-                    name="eetHours"
-                    class="input number-input"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    autocomplete="off"
-                    required
-                  >
-                </div>
-
-                <div class="field">
-                  <label for="tripInfo-eet-minutes">min</label>
-                  <input
-                    id="tripInfo-eet-minutes"
-                    name="eetMinutes"
-                    class="input number-input"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    autocomplete="off"
-                    required
-                  >
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="card stack tripInfoSectionCard">
-            <h2>Captain Signature</h2>
-            <canvas
-              id="tripInfo-signature-canvas"
-              class="tripInfoSignatureCanvas"
-              aria-label="Captain signature pad"
-            ></canvas>
-            <button
-              class="button"
-              type="button"
-              id="tripInfo-clear-signature-button"
-            >
-              Clear Signature
-            </button>
-          </section>
-
-          <p
-            id="tripInfo-validation-message"
-            class="inline-message"
-            aria-live="polite"
-            hidden
-          ></p>
-
-          <div class="actions">
-            <button class="button" type="button" id="tripInfo-reset-button">RESET</button>
-            <button class="button primary" type="submit" id="tripInfo-generate-button">
-              GENERATE
-            </button>
-          </div>
-        </form>
-
-        <section class="screen tripInfoPreviewSection" id="tripInfo-preview-section" hidden>
-          <section class="card tripInfoPreviewCard">
-            <h2>Preview</h2>
-            <div id="tripInfo-preview-mount" class="tripInfoPreviewMount"></div>
-          </section>
-
-          <div class="actions tripInfoExportActions">
-            <button class="button" type="button" id="tripInfo-download-pdf-button">
-              Download PDF
-            </button>
-            <button class="button" type="button" id="tripInfo-download-png-button">
-              Download PNG
-            </button>
-            <button class="button primary" type="button" id="tripInfo-share-button">
-              Share
-            </button>
-          </div>
-
-          <canvas id="tripInfo-export-canvas" class="tripInfoExportCanvas" hidden></canvas>
-        </section>
-      </section>
-
       <section class="screen app-view" id="tripInfoB737View" hidden aria-hidden="true">
         <div class="module-nav">
           <button class="button module-back" type="button" id="backFromTripInfoB737Btn">Back</button>
@@ -1627,7 +1076,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">9.5</span>
+            <span class="module-version-badge">1.0</span>
           </div>
         </header>
 
@@ -2140,7 +1589,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">9.5</span>
+            <span class="module-version-badge">1.0</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -2219,8 +1668,7 @@
             <div class="field">
               <label for="acn-aircraft-type">Aircraft type</label>
               <select id="acn-aircraft-type" name="aircraftType" class="select" required>
-                <option value="B787-9" selected>B787-9</option>
-                <option value="B737 NG">B737 NG</option>
+                <option value="B737 NG" selected>B737 NG</option>
                 <option value="B737 MAX">B737 MAX</option>
               </select>
             </div>
@@ -2286,6 +1734,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=9.5" defer></script>
+    <script src="app.js?v=1.0" defer></script>
   </body>
 </html>
