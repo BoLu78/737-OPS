@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="1.3">
+    <meta name="app-version" content="1.4">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.3">
+    <link rel="manifest" href="manifest.json?v=1.4">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -983,8 +983,8 @@
             <span class="menu-button-note">Operational trip sheet generator</span>
           </button>
           <button class="menu-button" type="button" id="openBrakeCoolingBtn" data-code="BRK">
-            <span class="menu-button-title">Braking Cooling Time</span>
-            <span class="menu-button-note">Brake energy and cooling schedule</span>
+            <span class="menu-button-title">Brake Cooling Correction</span>
+            <span class="menu-button-note">Taxi correction from official cooling time</span>
           </button>
           <button class="menu-button" type="button" id="openFuelBtn" data-code="FUEL">
             <span class="menu-button-title">Fuel Check</span>
@@ -999,7 +999,7 @@
         <div class="home-logo-wrap">
           <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
           <span class="home-brand">737 OPS</span>
-          <span class="home-version">v1.3</span>
+          <span class="home-version">v1.4</span>
         </div>
       </section>
 
@@ -1010,15 +1010,15 @@
 
         <header class="hero">
           <div class="module-header-row">
-            <h1>Braking Cooling Time</h1>
-            <span class="module-version-badge">1.3</span>
+            <h1>Brake Cooling Correction</h1>
+            <span class="module-version-badge">1.4</span>
           </div>
-          <p class="subtitle">Brake energy and cooling schedule</p>
+          <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
 
         <form id="brake-cooling-form" class="stack acn-form" novalidate>
           <section class="card stack acn-section-card">
-            <h2>Aircraft / Conditions</h2>
+            <h2>Aircraft / Official Result</h2>
 
             <div class="field">
               <label for="brake-registration">Registration</label>
@@ -1041,57 +1041,65 @@
 
             <div class="row two-col">
               <div class="field">
-                <label for="brake-altitude">Airport pressure altitude (ft)</label>
-                <input id="brake-altitude" name="altitude" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
+                <label for="brake-official-ground-time">Official Ground Cooling Time (min)</label>
+                <input id="brake-official-ground-time" name="officialGroundCoolingTime" class="input number-input" type="text" inputmode="decimal" autocomplete="off" required>
               </div>
 
-              <div class="field">
-                <label for="brake-weight">Aircraft weight (kg)</label>
-                <input id="brake-weight" name="weight" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
-              </div>
-            </div>
-
-            <div class="row two-col">
               <div class="field">
                 <label for="brake-oat">OAT (°C)</label>
                 <input id="brake-oat" name="oat" class="input number-input" type="text" inputmode="decimal" autocomplete="off" required>
-              </div>
-
-              <div class="field">
-                <label for="brake-speed">Brakes-on speed (KIAS)</label>
-                <input id="brake-speed" name="speed" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
               </div>
             </div>
           </section>
 
           <section class="card stack acn-section-card">
-            <h2>Event / Taxi</h2>
+            <h2>Taxi Correction</h2>
 
             <div class="field">
-              <label for="brake-reverse-thrust">Reverse thrust</label>
-              <select id="brake-reverse-thrust" name="reverseThrust" class="select" required>
-                <option value="">Select reverse thrust</option>
-                <option value="NO_REVERSE">NO_REVERSE</option>
-                <option value="TWO_ENGINE_DETENT_REVERSE">TWO_ENGINE_DETENT_REVERSE</option>
-              </select>
+              <span class="field-title">Taxi correction mode</span>
+              <div class="segmented" role="radiogroup" aria-label="Taxi correction mode">
+                <label>
+                  <input type="radio" name="taxiMode" value="distance" checked>
+                  <span class="segment">Taxi distance</span>
+                </label>
+                <label>
+                  <input type="radio" name="taxiMode" value="timeSpeed">
+                  <span class="segment">Taxi time + speed</span>
+                </label>
+              </div>
             </div>
 
-            <div class="field">
-              <label for="brake-event">Event</label>
-              <select id="brake-event" name="event" class="select" required>
-                <option value="">Select event</option>
-                <option value="RTO MAX MAN">RTO MAX MAN</option>
-                <option value="LANDING MAX MAN">LANDING MAX MAN</option>
-                <option value="LANDING MAX AUTO">LANDING MAX AUTO</option>
-                <option value="LANDING AUTOBRAKE 3">LANDING AUTOBRAKE 3</option>
-                <option value="LANDING AUTOBRAKE 2">LANDING AUTOBRAKE 2</option>
-                <option value="LANDING AUTOBRAKE 1">LANDING AUTOBRAKE 1</option>
-              </select>
+            <div id="brake-taxi-distance-fields" class="row two-col">
+              <div class="field">
+                <label for="brake-taxi-distance">Taxi distance</label>
+                <input id="brake-taxi-distance" name="taxiDistance" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
+              </div>
+
+              <div class="field">
+                <label for="brake-taxi-distance-unit">Distance unit</label>
+                <select id="brake-taxi-distance-unit" name="taxiDistanceUnit" class="select">
+                  <option value="meters">meters</option>
+                  <option value="NM">NM</option>
+                </select>
+              </div>
             </div>
 
-            <div class="field">
-              <label for="brake-taxi-minutes">Taxi time after landing (minutes)</label>
-              <input id="brake-taxi-minutes" name="taxiMinutes" class="input number-input" type="text" inputmode="decimal" autocomplete="off" required>
+            <div id="brake-taxi-time-fields" class="stack" hidden>
+              <div class="row two-col">
+                <div class="field">
+                  <label for="brake-taxi-minutes">Taxi time (minutes)</label>
+                  <input id="brake-taxi-minutes" name="taxiMinutes" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
+                </div>
+
+                <div class="field">
+                  <label for="brake-taxi-speed">Average taxi speed (kt)</label>
+                  <input id="brake-taxi-speed" name="taxiSpeedKt" class="input number-input" type="text" inputmode="decimal" autocomplete="off" value="10">
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="button" type="button" id="brake-cooling-conservative-speed-button">Use conservative 20 kt</button>
+              </div>
             </div>
 
             <p id="brake-cooling-validation-message" class="inline-message" aria-live="polite" hidden></p>
@@ -1124,7 +1132,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.3</span>
+              <span class="module-version-badge">1.4</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1257,7 +1265,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.3</span>
+            <span class="module-version-badge">1.4</span>
           </div>
         </header>
 
@@ -1770,7 +1778,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.3</span>
+            <span class="module-version-badge">1.4</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1915,6 +1923,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.3" defer></script>
+    <script src="app.js?v=1.4" defer></script>
   </body>
 </html>

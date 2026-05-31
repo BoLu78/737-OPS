@@ -1,11 +1,11 @@
 {
   "name": "737 OPS",
   "short_name": "737 OPS",
-  "version": "1.3",
+  "version": "1.4",
   "display": "standalone",
   "background_color": "#f3efe4",
   "theme_color": "#f3efe4",
-  "start_url": "./?v=1.3",
+  "start_url": "./?v=1.4",
   "icons": [
     {
       "src": "icons/icon-192.png",
