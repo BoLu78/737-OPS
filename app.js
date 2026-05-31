@@ -1,4 +1,4 @@
-const APP_VERSION = "1.8";
+const APP_VERSION = "1.9";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -1399,7 +1399,7 @@ function renderBrakeCoolingResult(result) {
     ["Official Ground Cooling Time", formatBrakeCoolingTime(result.officialGroundCoolingTime)],
     ["Taxi input used", result.taxiInputDisplay],
     [
-      "Taxi distance used",
+      "Taxi distance",
       {
         value: `${formatBrakeTaxiKilometers(result.taxiMiles)} km`,
         note: `${formatBrakeTaxiMiles(result.taxiMiles)} statute mi used for Boeing taxi correction`,
