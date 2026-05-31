@@ -339,21 +339,18 @@
       }
 
       .home-logo-wrap {
-        position: relative;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 18px 0 22px;
-        padding: 0 2px;
+        gap: 10px;
+        margin: 0 0 12px;
         color: var(--muted);
         pointer-events: none;
       }
 
       .home-logo {
-        width: min(27vw, 96px);
-        max-width: 96px;
-        max-height: 34px;
+        width: min(23vw, 82px);
+        max-width: 82px;
+        max-height: 28px;
         display: block;
         height: auto;
         object-fit: contain;
@@ -361,15 +358,6 @@
         user-select: none;
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
-      }
-
-      .home-brand {
-        flex: 1;
-        color: var(--accent-blue);
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
       }
 
       .home-version {
@@ -986,6 +974,10 @@
     <main class="app-shell">
       <section class="screen app-view" id="homeView" aria-hidden="false">
         <header class="hero">
+          <div class="home-logo-wrap">
+            <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
+            <span class="home-version">v1.7</span>
+          </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
           <p class="subtitle">Select a B737 module to continue.</p>
@@ -1009,12 +1001,6 @@
             <span class="menu-button-note">Pavement compatibility module</span>
           </button>
         </section>
-
-        <div class="home-logo-wrap">
-          <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-          <span class="home-brand">737 OPS</span>
-          <span class="home-version">v1.7</span>
-        </div>
       </section>
 
       <section class="screen app-view" id="brakeCoolingView" hidden aria-hidden="true">
