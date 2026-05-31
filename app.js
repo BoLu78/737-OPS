@@ -521,6 +521,37 @@ const TRIP_INFO_B737_AIRCRAFT_BY_REGISTRATION = Object.fromEntries(
 const TRIP_INFO_B737_REGISTRATIONS = TRIP_INFO_B737_AIRCRAFT_FLEET.map(
   (aircraft) => aircraft.registration
 );
+const TRIP_INFO_B737_DEFAULTS = {
+  flightNumber: "",
+  from: "",
+  to: "",
+  date: "",
+  aircraftId: "I-NEOU",
+  crew: {
+    pilots: 2,
+    cabin: 4,
+  },
+  crewBag: "",
+  crewBagWeight: "",
+  pantry: "Z",
+  includeSpareMlg: true,
+  flightType: "",
+  remarksFreeText: "",
+  remarksPresetSelections: [],
+  aircraftRegistration: "I-NEOU",
+  aircraftType: "B737-800 NG",
+  captainName: "",
+  dow: "",
+  doi: "",
+  maxZfw: "61688",
+  maxTow: "78925",
+  maxLdw: "66224",
+  tripFuel: "",
+  taxiFuel: "",
+  blockFuel: "",
+  eetHours: "",
+  eetMinutes: "",
+};
 
 
 const homeView = document.getElementById("homeView");
@@ -583,91 +614,89 @@ let tripInfoB737SignaturePointerId = null;
 let tripInfoB737SignatureDrawing = false;
 
 registerServiceWorker();
-updateToleranceText();
-showHomeView();
-initializeAcnModule();
-initializeTripInfoB737Module();
+attachEventListeners();
+initializeApp();
 
-openFuelBtn.addEventListener("click", () => {
-  showInputScreen();
-  showFuelView();
-});
+function attachEventListeners() {
+  openFuelBtn.addEventListener("click", () => {
+    showInputScreen();
+    showFuelView();
+  });
 
-openAcnBtn.addEventListener("click", () => {
-  showAcnView();
-  clearAcnModule();
-});
+  openAcnBtn.addEventListener("click", () => {
+    showAcnView();
+    clearAcnModule();
+  });
 
-openTripInfoBtn.addEventListener("click", () => {
-  tripInfoB737RestoreState();
-  showTripInfoB737View();
-});
+  openTripInfoBtn.addEventListener("click", () => {
+    tripInfoB737RestoreState();
+    showTripInfoB737View();
+  });
 
-backFromFuelBtn.addEventListener("click", () => {
-  showHomeView();
-});
+  backFromFuelBtn.addEventListener("click", showHomeView);
+  backFromAcnBtn.addEventListener("click", showHomeView);
+  backFromTripInfoB737Btn.addEventListener("click", showHomeView);
 
-backFromAcnBtn.addEventListener("click", () => {
-  showHomeView();
-});
+  acnForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateAcnModule();
+  });
 
-backFromTripInfoB737Btn.addEventListener("click", () => {
-  showHomeView();
-});
+  acnClearButton.addEventListener("click", clearAcnModule);
 
-acnForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  evaluateAcnModule();
-});
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    calculateAndRender();
+  });
 
-acnClearButton.addEventListener("click", () => {
-  clearAcnModule();
-});
+  clearButton.addEventListener("click", () => {
+    form.reset();
+    form.elements.densityUnit.value = "kg/L";
+    form.elements.volumeUnit.value = "Liters";
+    form.elements.densityValue.value = "0.796";
+    updateToleranceText();
+    form.elements.rampFuel.focus();
+  });
 
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  calculateAndRender();
-});
+  tripInfoB737Form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    generateTripInfoB737Preview();
+  });
 
-tripInfoB737Form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  generateTripInfoB737Preview();
-});
-tripInfoB737Form.addEventListener("input", handleTripInfoB737FormInput);
-tripInfoB737Form.addEventListener("change", handleTripInfoB737FormChange);
+  tripInfoB737Form.addEventListener("input", handleTripInfoB737FormInput);
+  tripInfoB737Form.addEventListener("change", handleTripInfoB737FormChange);
 
-clearButton.addEventListener("click", () => {
-  form.reset();
-  form.elements.densityUnit.value = "kg/L";
-  form.elements.volumeUnit.value = "Liters";
-  form.elements.densityValue.value = "0.796";
+  tripInfoB737ResetButton.addEventListener("click", () => {
+    resetTripInfoB737Module(true);
+  });
+
+  tripInfoB737ClearSignatureButton.addEventListener("click", () => {
+    clearTripInfoB737Signature();
+  });
+
+  tripInfoB737DownloadPdfButton.addEventListener("click", () => {
+    void tripInfoB737DownloadPdf();
+  });
+
+  tripInfoB737DownloadPngButton.addEventListener("click", () => {
+    void tripInfoB737DownloadPng();
+  });
+
+  tripInfoB737ShareButton.addEventListener("click", () => {
+    void tripInfoB737Share();
+  });
+
+  window.addEventListener("resize", () => {
+    tripInfoB737ResizeSignatureCanvas(true);
+  });
+}
+
+function initializeApp() {
   updateToleranceText();
-  form.elements.rampFuel.focus();
-});
-
-tripInfoB737ResetButton.addEventListener("click", () => {
-  resetTripInfoB737Module(true);
-});
-
-tripInfoB737ClearSignatureButton.addEventListener("click", () => {
-  clearTripInfoB737Signature();
-});
-
-tripInfoB737DownloadPdfButton.addEventListener("click", () => {
-  void tripInfoB737DownloadPdf();
-});
-
-tripInfoB737DownloadPngButton.addEventListener("click", () => {
-  void tripInfoB737DownloadPng();
-});
-
-tripInfoB737ShareButton.addEventListener("click", () => {
-  void tripInfoB737Share();
-});
-
-window.addEventListener("resize", () => {
-  tripInfoB737ResizeSignatureCanvas(true);
-});
+  showHomeView();
+  initializeAcnModule();
+  initializeTripInfoB737Module();
+}
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) {
@@ -1366,6 +1395,23 @@ function showInputScreen() {
   resultsScreen.hidden = true;
   inputScreen.hidden = false;
   window.scrollTo(0, 0);
+}
+
+function initializeTripInfoB737Module() {
+  tripInfoB737SetupSignaturePad();
+  tripInfoB737RestoreState();
+  tripInfoB737UpdateTakeOffFuelField();
+  tripInfoB737UpdatePreviewVisibility();
+  void tripInfoLoadLogoData();
+}
+
+function tripInfoGetTodayIsoDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function tripInfoBuildPreviewSvg(data) {
