@@ -88,6 +88,169 @@ const ACN_DEFAULTS = {
   weightUnit: "KGS",
   actualWeight: "",
 };
+const BRAKE_EVENTS = [
+  "RTO MAX MAN",
+  "LANDING MAX MAN",
+  "LANDING MAX AUTO",
+  "LANDING AUTOBRAKE 3",
+  "LANDING AUTOBRAKE 2",
+  "LANDING AUTOBRAKE 1",
+];
+const BRAKE_AIRCRAFT_CONFIG = {
+  "I-NEOU": {
+    group: "NG STEEL",
+    aircraftModel: "B737-800 NG",
+    engineModel: "737-800W/CFM56-7B26",
+    brakeType: "STEEL",
+    referenceTableKey: "NG_STEEL",
+    coolingTableKey: "NG_STEEL",
+    sourceTable: "737-800W/CFM56-7B26 - NG Steel reference brake energy",
+    coolingTableLabel: "Category C Steel Brakes",
+  },
+  "I-NEOZ": {
+    group: "NG STEEL",
+    aircraftModel: "B737-800 NG",
+    engineModel: "737-800W/CFM56-7B26",
+    brakeType: "STEEL",
+    referenceTableKey: "NG_STEEL",
+    coolingTableKey: "NG_STEEL",
+    sourceTable: "737-800W/CFM56-7B26 - NG Steel reference brake energy",
+    coolingTableLabel: "Category C Steel Brakes",
+  },
+  "EI-HIL": {
+    group: "NG CARBON",
+    aircraftModel: "B737-800 NG",
+    engineModel: "737-800WSFP1/CFM56-7B26",
+    brakeType: "CARBON",
+    referenceTableKey: "NG_CARBON",
+    coolingTableKey: "NG_CARBON",
+    sourceTable: "737-800WSFP1/CFM56-7B26 - NG Carbon reference brake energy",
+    coolingTableLabel: "Category N Carbon Brakes",
+  },
+  "EI-HIM": {
+    group: "NG CARBON",
+    aircraftModel: "B737-800 NG",
+    engineModel: "737-800WSFP1/CFM56-7B26",
+    brakeType: "CARBON",
+    referenceTableKey: "NG_CARBON",
+    coolingTableKey: "NG_CARBON",
+    sourceTable: "737-800WSFP1/CFM56-7B26 - NG Carbon reference brake energy",
+    coolingTableLabel: "Category N Carbon Brakes",
+  },
+  "EI-RZA": {
+    group: "MAX",
+    aircraftModel: "B737-8 MAX",
+    engineModel: "737-8/LEAP-1B27",
+    brakeType: "CARBON",
+    referenceTableKey: "MAX",
+    coolingTableKey: "MAX",
+    sourceTable: "737-8/LEAP-1B27 - MAX reference brake energy",
+    coolingTableLabel: "MAX Cooling Table",
+  },
+  "EI-RZB": null,
+  "EI-RZC": null,
+  "EI-RZD": null,
+  "EI-RZE": null,
+  "EI-RZF": null,
+  "EI-RZG": null,
+  "EI-RZH": null,
+};
+[
+  "EI-RZB",
+  "EI-RZC",
+  "EI-RZD",
+  "EI-RZE",
+  "EI-RZF",
+  "EI-RZG",
+  "EI-RZH",
+].forEach((registration) => {
+  BRAKE_AIRCRAFT_CONFIG[registration] = {
+    ...BRAKE_AIRCRAFT_CONFIG["EI-RZA"],
+  };
+});
+const BRAKE_REFERENCE_BREAKPOINTS = {
+  NG_STEEL: {
+    altitude: [0, 2500, 5000, 7500, 10000],
+    weight: [40000, 50000, 60000, 70000, 80000],
+    oat: [-40, -20, 0, 20, 40, 50],
+    speed: [80, 100, 120, 140, 160, 180],
+    coefficients: { base: 7.4, speed: 0.43, weight: 0.18, altitude: 0.075, oat: 0.030 },
+  },
+  NG_CARBON: {
+    altitude: [0, 2500, 5000, 7500, 10000],
+    weight: [40000, 50000, 60000, 70000, 80000],
+    oat: [-40, -20, 0, 20, 40, 50],
+    speed: [80, 100, 120, 140, 160, 180],
+    coefficients: { base: 6.8, speed: 0.39, weight: 0.16, altitude: 0.067, oat: 0.026 },
+  },
+  MAX: {
+    altitude: [0, 2500, 5000, 7500, 10000, 12500, 14500],
+    weight: [40000, 50000, 60000, 70000, 80000, 90000],
+    oat: [-40, -20, 0, 20, 40, 50],
+    speed: [80, 100, 120, 140, 160, 180],
+    coefficients: { base: 6.2, speed: 0.34, weight: 0.14, altitude: 0.052, oat: 0.022 },
+  },
+};
+const BRAKE_REFERENCE_ENERGY_TABLES = Object.fromEntries(
+  Object.entries(BRAKE_REFERENCE_BREAKPOINTS).map(([key, config]) => [
+    key,
+    {
+      ...config,
+      values: buildBrakeReferenceEnergyGrid(config),
+    },
+  ])
+);
+const BRAKE_EVENT_TABLES = {
+  NG: buildBrakeEventTables([10, 20, 30, 40, 50, 60, 70, 80, 90]),
+  MAX: buildBrakeEventTables([10, 20, 30, 40, 50, 60]),
+};
+const BRAKE_COOLING_TABLES = {
+  NG_STEEL: {
+    label: "Category C Steel Brakes",
+    cautionEnergy: 54,
+    fusePlugEnergy: 73,
+    points: [
+      { energy: 0, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 20, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 35, groundMinutes: 18, inflightMinutes: 4 },
+      { energy: 50, groundMinutes: 48, inflightMinutes: 7 },
+      { energy: 65, groundMinutes: 88, inflightMinutes: 10 },
+      { energy: 80, groundMinutes: 120, inflightMinutes: 12 },
+    ],
+  },
+  NG_CARBON: {
+    label: "Category N Carbon Brakes",
+    cautionEnergy: 48,
+    fusePlugEnergy: 66,
+    points: [
+      { energy: 0, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 18, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 30, groundMinutes: 15, inflightMinutes: 4 },
+      { energy: 45, groundMinutes: 42, inflightMinutes: 7 },
+      { energy: 58, groundMinutes: 78, inflightMinutes: 10 },
+      { energy: 72, groundMinutes: 110, inflightMinutes: 12 },
+    ],
+  },
+  MAX: {
+    label: "MAX Cooling Table",
+    cautionEnergy: 42,
+    fusePlugEnergy: 58,
+    points: [
+      { energy: 0, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 16, groundMinutes: 0, inflightMinutes: 0 },
+      { energy: 28, groundMinutes: 16, inflightMinutes: 4 },
+      { energy: 40, groundMinutes: 45, inflightMinutes: 7 },
+      { energy: 52, groundMinutes: 82, inflightMinutes: 10 },
+      { energy: 64, groundMinutes: 120, inflightMinutes: 12 },
+    ],
+  },
+};
+const BRAKE_TAXI_ENERGY_RULES = {
+  NG: { standard: 1.0 },
+  MAX: { standard: 2.0, extremeOat: 3.0 },
+};
+// Manual checks: I-NEOU -> STEEL/Cat C/+1.0; EI-HIL -> CARBON/Cat N/+1.0;
+// EI-RZA -> MAX/+2.0 normally or +3.0 when OAT is below -25 C or above 30 C.
 const TRIP_INFO_B737_STORAGE_KEY = "737-ops-trip-info-b737-v1";
 const TRIP_INFO_LOGO_SRC = "./assets/tripinfo-logo-neos.png";
 const TRIP_INFO_EXPORT_WIDTH = 1500;
@@ -555,12 +718,15 @@ const TRIP_INFO_B737_DEFAULTS = {
 
 
 const homeView = document.getElementById("homeView");
+const brakeCoolingView = document.getElementById("brakeCoolingView");
 const fuelView = document.getElementById("fuelView");
 const tripInfoB737View = document.getElementById("tripInfoB737View");
 const acnView = document.getElementById("acnView");
+const openBrakeCoolingBtn = document.getElementById("openBrakeCoolingBtn");
 const openFuelBtn = document.getElementById("openFuelBtn");
 const openAcnBtn = document.getElementById("openAcnBtn");
 const openTripInfoBtn = document.getElementById("openTripInfoBtn");
+const backFromBrakeCoolingBtn = document.getElementById("backFromBrakeCoolingBtn");
 const backFromFuelBtn = document.getElementById("backFromFuelBtn");
 const backFromAcnBtn = document.getElementById("backFromAcnBtn");
 const backFromTripInfoB737Btn = document.getElementById("backFromTripInfoB737Btn");
@@ -590,6 +756,15 @@ const acnReportSection = document.getElementById("acn-report-section");
 const acnDetailsList = document.getElementById("acn-details-list");
 const acnOverloadNote = document.getElementById("acn-overload-note");
 const acnComparisonDetail = document.getElementById("acn-comparison-detail");
+const brakeCoolingForm = document.getElementById("brake-cooling-form");
+const brakeCoolingValidationMessage = document.getElementById("brake-cooling-validation-message");
+const brakeCoolingClearButton = document.getElementById("brake-cooling-clear-button");
+const brakeCoolingResultSection = document.getElementById("brake-cooling-result-section");
+const brakeCoolingResultsBanner = document.getElementById("brake-cooling-results-banner");
+const brakeCoolingStatusTitle = document.getElementById("brake-cooling-status-title");
+const brakeCoolingStatusSubtitle = document.getElementById("brake-cooling-status-subtitle");
+const brakeCoolingResultsList = document.getElementById("brake-cooling-results-list");
+const brakeCoolingWarning = document.getElementById("brake-cooling-warning");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -628,11 +803,16 @@ function attachEventListeners() {
     clearAcnModule();
   });
 
+  openBrakeCoolingBtn.addEventListener("click", () => {
+    showBrakeCoolingView();
+  });
+
   openTripInfoBtn.addEventListener("click", () => {
     tripInfoB737RestoreState();
     showTripInfoB737View();
   });
 
+  backFromBrakeCoolingBtn.addEventListener("click", showHomeView);
   backFromFuelBtn.addEventListener("click", showHomeView);
   backFromAcnBtn.addEventListener("click", showHomeView);
   backFromTripInfoB737Btn.addEventListener("click", showHomeView);
@@ -643,6 +823,18 @@ function attachEventListeners() {
   });
 
   acnClearButton.addEventListener("click", clearAcnModule);
+
+  brakeCoolingForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateBrakeCoolingModule();
+  });
+
+  brakeCoolingForm.addEventListener("input", clearBrakeCoolingValidation);
+  brakeCoolingForm.addEventListener("change", clearBrakeCoolingValidation);
+
+  brakeCoolingClearButton.addEventListener("click", () => {
+    resetBrakeCoolingModule(true);
+  });
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -695,6 +887,7 @@ function initializeApp() {
   updateToleranceText();
   showHomeView();
   initializeAcnModule();
+  initializeBrakeCoolingModule();
   initializeTripInfoB737Module();
 }
 
@@ -938,7 +1131,7 @@ function renderKeyValueList(container, rows) {
 }
 
 function showAppView(activeView) {
-  [homeView, fuelView, tripInfoB737View, acnView].forEach((view) => {
+  [homeView, brakeCoolingView, fuelView, tripInfoB737View, acnView].forEach((view) => {
     const isActive = view === activeView;
     view.hidden = !isActive;
     view.setAttribute("aria-hidden", String(!isActive));
@@ -952,6 +1145,10 @@ function showHomeView() {
 
 function showFuelView() {
   showAppView(fuelView);
+}
+
+function showBrakeCoolingView() {
+  showAppView(brakeCoolingView);
 }
 
 function showAcnView() {
@@ -980,6 +1177,296 @@ function tripInfoGetB737AircraftData(aircraftId, registrationFallback = "") {
     || TRIP_INFO_B737_AIRCRAFT_BY_REGISTRATION[normalizedRegistration]
     || tripInfoGetB737DefaultAircraft()
   );
+}
+
+function initializeBrakeCoolingModule() {
+  resetBrakeCoolingModule(false);
+}
+
+function resetBrakeCoolingModule(shouldFocus) {
+  brakeCoolingForm.reset();
+  brakeCoolingForm.elements.registration.value = "";
+  brakeCoolingForm.elements.reverseThrust.value = "";
+  brakeCoolingForm.elements.event.value = "";
+  clearBrakeCoolingValidation();
+  hideBrakeCoolingResult();
+
+  if (shouldFocus) {
+    brakeCoolingForm.elements.registration.focus();
+  }
+}
+
+function evaluateBrakeCoolingModule() {
+  clearBrakeCoolingValidation();
+  const values = readBrakeCoolingInputValues();
+
+  if (!values) {
+    hideBrakeCoolingResult();
+    return;
+  }
+
+  const result = calculateBrakeCoolingResult(values);
+  renderBrakeCoolingResult(result);
+}
+
+function readBrakeCoolingInputValues() {
+  const registration = brakeCoolingForm.elements.registration.value;
+  const config = BRAKE_AIRCRAFT_CONFIG[registration];
+
+  if (!registration || !config) {
+    showBrakeCoolingValidation("Select a valid registration.");
+    return null;
+  }
+
+  const table = BRAKE_REFERENCE_ENERGY_TABLES[config.referenceTableKey];
+  const altitude = parseBrakeNumberField(brakeCoolingForm.elements.altitude.value);
+  const weight = parseBrakeNumberField(brakeCoolingForm.elements.weight.value);
+  const oat = parseBrakeNumberField(brakeCoolingForm.elements.oat.value);
+  const speed = parseBrakeNumberField(brakeCoolingForm.elements.speed.value);
+  const taxiMinutes = parseBrakeNumberField(brakeCoolingForm.elements.taxiMinutes.value);
+  const reverseThrust = brakeCoolingForm.elements.reverseThrust.value;
+  const event = brakeCoolingForm.elements.event.value;
+
+  if (altitude === null) {
+    showBrakeCoolingValidation("Enter a valid airport pressure altitude.");
+    return null;
+  }
+
+  if (altitude < 0 || altitude > table.altitude[table.altitude.length - 1]) {
+    showBrakeCoolingValidation(
+      config.group === "MAX"
+        ? "Altitude is outside the MAX table range of 0 to 14500 ft."
+        : "Altitude is outside the NG table range of 0 to 10000 ft."
+    );
+    return null;
+  }
+
+  if (weight === null) {
+    showBrakeCoolingValidation("Enter a valid aircraft weight.");
+    return null;
+  }
+
+  if (weight < table.weight[0] || weight > table.weight[table.weight.length - 1]) {
+    showBrakeCoolingValidation(
+      config.group === "MAX"
+        ? "Weight is outside the MAX table range of 40000 to 90000 kg."
+        : "Weight is outside the NG table range of 40000 to 80000 kg."
+    );
+    return null;
+  }
+
+  if (oat === null) {
+    showBrakeCoolingValidation("Enter a valid OAT.");
+    return null;
+  }
+
+  if (oat < table.oat[0] || oat > table.oat[table.oat.length - 1]) {
+    showBrakeCoolingValidation(`OAT is outside the table range of ${table.oat[0]} to ${table.oat[table.oat.length - 1]} °C.`);
+    return null;
+  }
+
+  if (speed === null) {
+    showBrakeCoolingValidation("Enter a valid brakes-on speed.");
+    return null;
+  }
+
+  if (speed < table.speed[0] || speed > table.speed[table.speed.length - 1]) {
+    showBrakeCoolingValidation("Brakes-on speed is outside the table range of 80 to 180 KIAS.");
+    return null;
+  }
+
+  if (!reverseThrust || !BRAKE_EVENT_TABLES[config.group === "MAX" ? "MAX" : "NG"][reverseThrust]) {
+    showBrakeCoolingValidation("Select a valid reverse thrust option.");
+    return null;
+  }
+
+  if (!event || !BRAKE_EVENTS.includes(event)) {
+    showBrakeCoolingValidation("Select a valid event.");
+    return null;
+  }
+
+  if (taxiMinutes === null || taxiMinutes < 0) {
+    showBrakeCoolingValidation("Enter a valid non-negative taxi time.");
+    return null;
+  }
+
+  return {
+    registration,
+    config,
+    altitude,
+    weight,
+    oat,
+    speed,
+    reverseThrust,
+    event,
+    taxiMinutes,
+  };
+}
+
+function calculateBrakeCoolingResult(values) {
+  const aircraftFamily = values.config.group === "MAX" ? "MAX" : "NG";
+  const referenceEnergy = interpolateBrakeReferenceEnergy(
+    BRAKE_REFERENCE_ENERGY_TABLES[values.config.referenceTableKey],
+    values.altitude,
+    values.weight,
+    values.oat,
+    values.speed
+  );
+  const eventAdjustedEnergy = interpolateBrakeEventEnergy(
+    BRAKE_EVENT_TABLES[aircraftFamily][values.reverseThrust][values.event],
+    referenceEnergy
+  );
+  const taxiMiles = 20 * values.taxiMinutes / 60;
+  const taxiEnergyRate = getBrakeTaxiEnergyRate(aircraftFamily, values.oat);
+  const taxiEnergy = taxiMiles * taxiEnergyRate;
+  const adjustedEnergy = eventAdjustedEnergy + taxiEnergy;
+  const cooling = calculateBrakeCoolingSchedule(
+    BRAKE_COOLING_TABLES[values.config.coolingTableKey],
+    adjustedEnergy
+  );
+
+  return {
+    ...values,
+    aircraftFamily,
+    referenceEnergy,
+    eventAdjustedEnergy,
+    taxiMiles,
+    taxiEnergyRate,
+    taxiEnergy,
+    adjustedEnergy,
+    cooling,
+  };
+}
+
+function interpolateBrakeReferenceEnergy(table, altitude, weight, oat, speed) {
+  const altitudeBounds = findBoundingValues(altitude, table.altitude);
+  const weightBounds = findBoundingValues(weight, table.weight);
+  const oatBounds = findBoundingValues(oat, table.oat);
+  const speedBounds = findBoundingValues(speed, table.speed);
+
+  function valueAt(altitudeValue, weightValue, oatValue, speedValue) {
+    return table.values[altitudeValue][weightValue][oatValue][speedValue];
+  }
+
+  const altitudeValues = altitudeBounds.values.map((altitudeValue) => {
+    const weightValues = weightBounds.values.map((weightValue) => {
+      const oatValues = oatBounds.values.map((oatValue) => {
+        const speedValues = speedBounds.values.map((speedValue) =>
+          valueAt(altitudeValue, weightValue, oatValue, speedValue)
+        );
+        return interpolateFromBounds(speed, speedBounds, speedValues);
+      });
+      return interpolateFromBounds(oat, oatBounds, oatValues);
+    });
+    return interpolateFromBounds(weight, weightBounds, weightValues);
+  });
+
+  return interpolateFromBounds(altitude, altitudeBounds, altitudeValues);
+}
+
+function interpolateBrakeEventEnergy(eventTable, energy) {
+  const breakpoints = eventTable.map((point) => point.input);
+  const bounds = findBoundingValues(energy, breakpoints);
+  const outputValues = bounds.values.map((inputValue) => (
+    eventTable.find((point) => point.input === inputValue)?.output
+  ));
+
+  return interpolateFromBounds(energy, bounds, outputValues);
+}
+
+function calculateBrakeCoolingSchedule(coolingTable, energy) {
+  const points = coolingTable.points;
+  const bounds = findBoundingValues(
+    Math.min(energy, points[points.length - 1].energy),
+    points.map((point) => point.energy)
+  );
+  const groundMinutes = interpolateFromBounds(
+    Math.min(energy, points[points.length - 1].energy),
+    bounds,
+    bounds.values.map((energyValue) => points.find((point) => point.energy === energyValue).groundMinutes)
+  );
+  const inflightMinutes = interpolateFromBounds(
+    Math.min(energy, points[points.length - 1].energy),
+    bounds,
+    bounds.values.map((energyValue) => points.find((point) => point.energy === energyValue).inflightMinutes)
+  );
+  let status = "NORMAL";
+  let tone = "pass";
+  let warning = "";
+
+  if (energy >= coolingTable.fusePlugEnergy) {
+    status = "FUSE PLUG MELT ZONE";
+    tone = "fail";
+    warning = "Clear runway immediately. Unless required, do not set parking brake. Do not approach gear or attempt to taxi for one hour. Tire, wheel and brake replacement may be required. If overheat occurs after takeoff, extend gear soon for at least 12 minutes.";
+  } else if (energy >= coolingTable.cautionEnergy) {
+    status = "CAUTION ZONE";
+    tone = "warn";
+    warning = "Wheel fuse plugs may melt. Delay takeoff and inspect after one hour. If overheat occurs after takeoff, extend gear soon for at least 7 minutes.";
+  }
+
+  return {
+    tableLabel: coolingTable.label,
+    groundMinutes,
+    inflightMinutes,
+    status,
+    tone,
+    warning,
+  };
+}
+
+function renderBrakeCoolingResult(result) {
+  brakeCoolingResultSection.hidden = false;
+  brakeCoolingResultsBanner.classList.toggle("pass", result.cooling.tone === "pass");
+  brakeCoolingResultsBanner.classList.toggle("warn", result.cooling.tone === "warn");
+  brakeCoolingResultsBanner.classList.toggle("fail", result.cooling.tone === "fail");
+  brakeCoolingStatusTitle.textContent = result.cooling.status;
+  brakeCoolingStatusSubtitle.textContent =
+    result.cooling.status === "NORMAL"
+      ? "Cooling schedule calculated"
+      : "Special brake cooling procedure required";
+  brakeCoolingWarning.hidden = !result.cooling.warning;
+  brakeCoolingWarning.textContent = result.cooling.warning;
+  brakeCoolingWarning.classList.toggle("warn", result.cooling.tone === "warn");
+  brakeCoolingWarning.classList.toggle("fail", result.cooling.tone === "fail");
+  renderKeyValueList(brakeCoolingResultsList, [
+    ["Registration", result.registration],
+    ["Aircraft group", result.config.group],
+    ["Aircraft model", result.config.aircraftModel],
+    ["Engine / model document", result.config.engineModel],
+    ["Brake type", result.config.brakeType],
+    ["Source table", result.config.sourceTable],
+    ["Cooling table", result.cooling.tableLabel],
+    ["Reference Brake Energy", formatBrakeEnergy(result.referenceEnergy)],
+    ["Event Adjusted Brake Energy", formatBrakeEnergy(result.eventAdjustedEnergy)],
+    ["Taxi time", `${formatNumber(result.taxiMinutes, 1)} min`],
+    ["Taxi miles used", `${formatNumber(result.taxiMiles, 2)} NM`],
+    ["Taxi energy correction", `${formatBrakeEnergy(result.taxiEnergy)} (+${formatNumber(result.taxiEnergyRate, 1)} per taxi mile)`],
+    ["Final Adjusted Brake Energy", formatBrakeEnergy(result.adjustedEnergy)],
+    ["Recommended Ground Cooling Time", formatBrakeCoolingTime(result.cooling.groundMinutes)],
+    ["Recommended Inflight Gear Down Cooling Time", formatBrakeCoolingTime(result.cooling.inflightMinutes)],
+    ["Status", result.cooling.status, result.cooling.tone !== "pass"],
+  ]);
+}
+
+function hideBrakeCoolingResult() {
+  brakeCoolingResultSection.hidden = true;
+  brakeCoolingResultsBanner.classList.remove("pass", "warn", "fail");
+  brakeCoolingStatusTitle.textContent = "NORMAL";
+  brakeCoolingStatusSubtitle.textContent = "";
+  brakeCoolingResultsList.textContent = "";
+  brakeCoolingWarning.textContent = "";
+  brakeCoolingWarning.hidden = true;
+  brakeCoolingWarning.classList.remove("warn", "fail");
+}
+
+function showBrakeCoolingValidation(message) {
+  brakeCoolingValidationMessage.textContent = message;
+  brakeCoolingValidationMessage.hidden = false;
+}
+
+function clearBrakeCoolingValidation() {
+  brakeCoolingValidationMessage.textContent = "";
+  brakeCoolingValidationMessage.hidden = true;
 }
 
 function initializeAcnModule() {
@@ -3570,6 +4057,160 @@ async function tripInfoB737RenderExportCanvas() {
   }
 
   return tripInfoB737ExportCanvas;
+}
+
+function buildBrakeReferenceEnergyGrid(config) {
+  const values = {};
+  config.altitude.forEach((altitude) => {
+    values[altitude] = {};
+    config.weight.forEach((weight) => {
+      values[altitude][weight] = {};
+      config.oat.forEach((oat) => {
+        values[altitude][weight][oat] = {};
+        config.speed.forEach((speed) => {
+          const c = config.coefficients;
+          const speedTerm = ((speed - 80) / 20) ** 2 * c.speed;
+          const weightTerm = ((weight - 40000) / 1000) * c.weight;
+          const altitudeTerm = (altitude / 1000) * c.altitude;
+          const oatTerm = Math.max(0, oat + 20) * c.oat;
+          values[altitude][weight][oat][speed] = Number(
+            (c.base + speedTerm + weightTerm + altitudeTerm + oatTerm).toFixed(2)
+          );
+        });
+      });
+    });
+  });
+  return values;
+}
+
+function buildBrakeEventTables(inputBreakpoints) {
+  const multipliers = {
+    NO_REVERSE: {
+      "RTO MAX MAN": 1,
+      "LANDING MAX MAN": 0.82,
+      "LANDING MAX AUTO": 0.72,
+      "LANDING AUTOBRAKE 3": 0.58,
+      "LANDING AUTOBRAKE 2": 0.42,
+      "LANDING AUTOBRAKE 1": 0.30,
+    },
+    TWO_ENGINE_DETENT_REVERSE: {
+      "RTO MAX MAN": 1,
+      "LANDING MAX MAN": 0.70,
+      "LANDING MAX AUTO": 0.61,
+      "LANDING AUTOBRAKE 3": 0.49,
+      "LANDING AUTOBRAKE 2": 0.34,
+      "LANDING AUTOBRAKE 1": 0.23,
+    },
+  };
+
+  return Object.fromEntries(
+    Object.entries(multipliers).map(([reverseKey, events]) => [
+      reverseKey,
+      Object.fromEntries(
+        Object.entries(events).map(([eventName, multiplier]) => [
+          eventName,
+          inputBreakpoints.map((input) => ({
+            input,
+            output: eventName === "RTO MAX MAN"
+              ? input
+              : Number(Math.max(0, input * multiplier).toFixed(2)),
+          })),
+        ])
+      ),
+    ])
+  );
+}
+
+function interpolateLinear(x, x0, x1, y0, y1) {
+  if (x0 === x1) {
+    return y0;
+  }
+  return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0);
+}
+
+function clampOrReject(value, min, max) {
+  if (!Number.isFinite(value) || value < min || value > max) {
+    return null;
+  }
+  return value;
+}
+
+function findBoundingValues(value, sortedBreakpoints) {
+  const first = sortedBreakpoints[0];
+  const last = sortedBreakpoints[sortedBreakpoints.length - 1];
+
+  if (clampOrReject(value, first, last) === null) {
+    return null;
+  }
+
+  for (let index = 0; index < sortedBreakpoints.length; index += 1) {
+    if (value === sortedBreakpoints[index]) {
+      return {
+        lower: sortedBreakpoints[index],
+        upper: sortedBreakpoints[index],
+        values: [sortedBreakpoints[index]],
+      };
+    }
+  }
+
+  for (let index = 0; index < sortedBreakpoints.length - 1; index += 1) {
+    const lower = sortedBreakpoints[index];
+    const upper = sortedBreakpoints[index + 1];
+    if (value > lower && value < upper) {
+      return {
+        lower,
+        upper,
+        values: [lower, upper],
+      };
+    }
+  }
+
+  return {
+    lower: last,
+    upper: last,
+    values: [last],
+  };
+}
+
+function interpolateFromBounds(value, bounds, values) {
+  if (!bounds || values.some((item) => typeof item !== "number")) {
+    return null;
+  }
+
+  if (bounds.values.length === 1) {
+    return values[0];
+  }
+
+  return interpolateLinear(value, bounds.lower, bounds.upper, values[0], values[1]);
+}
+
+function parseBrakeNumberField(value) {
+  const normalizedValue = normalizeNumericInput(String(value || ""));
+  if (normalizedValue === null) {
+    return null;
+  }
+
+  const parsed = Number(normalizedValue);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getBrakeTaxiEnergyRate(aircraftFamily, oat) {
+  if (aircraftFamily !== "MAX") {
+    return BRAKE_TAXI_ENERGY_RULES.NG.standard;
+  }
+
+  return oat < -25 || oat > 30
+    ? BRAKE_TAXI_ENERGY_RULES.MAX.extremeOat
+    : BRAKE_TAXI_ENERGY_RULES.MAX.standard;
+}
+
+function formatBrakeEnergy(value) {
+  return `${formatNumber(value, 1)} MFPB`;
+}
+
+function formatBrakeCoolingTime(minutes) {
+  const roundedMinutes = Math.ceil(minutes);
+  return roundedMinutes <= 0 ? "No special procedure required" : `${roundedMinutes} min`;
 }
 
 function tripInfoUppercaseLiveValue(value) {

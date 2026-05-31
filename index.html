@@ -968,6 +968,10 @@
             <span class="menu-button-title">TRIP INFO B737</span>
             <span class="menu-button-note">Operational trip sheet generator</span>
           </button>
+          <button class="menu-button" type="button" id="openBrakeCoolingBtn" data-code="BRK">
+            <span class="menu-button-title">Braking Cooling Time</span>
+            <span class="menu-button-note">Brake energy and cooling schedule</span>
+          </button>
           <button class="menu-button" type="button" id="openFuelBtn" data-code="FUEL">
             <span class="menu-button-title">Fuel Check</span>
             <span class="menu-button-note">Tolerance check for remaining fuel</span>
@@ -983,6 +987,117 @@
           <span class="home-brand">737 OPS</span>
           <span class="home-version">v1.3</span>
         </div>
+      </section>
+
+      <section class="screen app-view" id="brakeCoolingView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromBrakeCoolingBtn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1>Braking Cooling Time</h1>
+            <span class="module-version-badge">1.3</span>
+          </div>
+          <p class="subtitle">Brake energy and cooling schedule</p>
+        </header>
+
+        <form id="brake-cooling-form" class="stack acn-form" novalidate>
+          <section class="card stack acn-section-card">
+            <h2>Aircraft / Conditions</h2>
+
+            <div class="field">
+              <label for="brake-registration">Registration</label>
+              <select id="brake-registration" name="registration" class="select" required>
+                <option value="">Select registration</option>
+                <option value="I-NEOU">I-NEOU</option>
+                <option value="I-NEOZ">I-NEOZ</option>
+                <option value="EI-HIL">EI-HIL</option>
+                <option value="EI-HIM">EI-HIM</option>
+                <option value="EI-RZA">EI-RZA</option>
+                <option value="EI-RZB">EI-RZB</option>
+                <option value="EI-RZC">EI-RZC</option>
+                <option value="EI-RZD">EI-RZD</option>
+                <option value="EI-RZE">EI-RZE</option>
+                <option value="EI-RZF">EI-RZF</option>
+                <option value="EI-RZG">EI-RZG</option>
+                <option value="EI-RZH">EI-RZH</option>
+              </select>
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="brake-altitude">Airport pressure altitude (ft)</label>
+                <input id="brake-altitude" name="altitude" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
+              </div>
+
+              <div class="field">
+                <label for="brake-weight">Aircraft weight (kg)</label>
+                <input id="brake-weight" name="weight" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
+              </div>
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="brake-oat">OAT (°C)</label>
+                <input id="brake-oat" name="oat" class="input number-input" type="text" inputmode="decimal" autocomplete="off" required>
+              </div>
+
+              <div class="field">
+                <label for="brake-speed">Brakes-on speed (KIAS)</label>
+                <input id="brake-speed" name="speed" class="input number-input" type="text" inputmode="numeric" autocomplete="off" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="card stack acn-section-card">
+            <h2>Event / Taxi</h2>
+
+            <div class="field">
+              <label for="brake-reverse-thrust">Reverse thrust</label>
+              <select id="brake-reverse-thrust" name="reverseThrust" class="select" required>
+                <option value="">Select reverse thrust</option>
+                <option value="NO_REVERSE">NO_REVERSE</option>
+                <option value="TWO_ENGINE_DETENT_REVERSE">TWO_ENGINE_DETENT_REVERSE</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="brake-event">Event</label>
+              <select id="brake-event" name="event" class="select" required>
+                <option value="">Select event</option>
+                <option value="RTO MAX MAN">RTO MAX MAN</option>
+                <option value="LANDING MAX MAN">LANDING MAX MAN</option>
+                <option value="LANDING MAX AUTO">LANDING MAX AUTO</option>
+                <option value="LANDING AUTOBRAKE 3">LANDING AUTOBRAKE 3</option>
+                <option value="LANDING AUTOBRAKE 2">LANDING AUTOBRAKE 2</option>
+                <option value="LANDING AUTOBRAKE 1">LANDING AUTOBRAKE 1</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="brake-taxi-minutes">Taxi time after landing (minutes)</label>
+              <input id="brake-taxi-minutes" name="taxiMinutes" class="input number-input" type="text" inputmode="decimal" autocomplete="off" required>
+            </div>
+
+            <p id="brake-cooling-validation-message" class="inline-message" aria-live="polite" hidden></p>
+
+            <div class="actions">
+              <button class="button" type="button" id="brake-cooling-clear-button">CLEAR</button>
+              <button class="button primary" type="submit">CALCULATE</button>
+            </div>
+          </section>
+        </form>
+
+        <section class="card result-section" id="brake-cooling-result-section" hidden>
+          <div id="brake-cooling-results-banner" class="results-banner pass" aria-live="polite">
+            <p class="banner-label">STATUS</p>
+            <h2 class="banner-title" id="brake-cooling-status-title">NORMAL</h2>
+            <p class="banner-subtitle" id="brake-cooling-status-subtitle">Cooling schedule calculated</p>
+          </div>
+          <div id="brake-cooling-results-list" class="kv-list"></div>
+          <p id="brake-cooling-warning" class="result-note warn" hidden></p>
+        </section>
       </section>
 
       <section class="screen app-view" id="fuelView" hidden aria-hidden="true">
