@@ -1,13 +1,13 @@
-const CACHE_NAME = "737-ops-v1.7";
+const CACHE_NAME = "737-ops-v1.8";
 const OFFLINE_FALLBACK_URL = "./index.html";
 const CORE_APP_FILES = [
   "./",
-  "./?v=1.7",
+  "./?v=1.8",
   "./index.html",
   "./app.js",
-  "./app.js?v=1.7",
+  "./app.js?v=1.8",
   "./manifest.json",
-  "./manifest.json?v=1.7",
+  "./manifest.json?v=1.8",
 ];
 const OPTIONAL_APP_FILES = [
   "./service-worker.js",
@@ -21,15 +21,15 @@ async function matchOfflineShell(cache) {
     await cache.match(OFFLINE_FALLBACK_URL)
   ) || (
     await cache.match("./")
-  ) || await cache.match("./?v=1.7");
+  ) || await cache.match("./?v=1.8");
 }
 
 async function matchCachedAppScript(cache) {
-  return (await cache.match("./app.js?v=1.7")) || await cache.match("./app.js");
+  return (await cache.match("./app.js?v=1.8")) || await cache.match("./app.js");
 }
 
 async function matchCachedManifest(cache) {
-  return (await cache.match("./manifest.json?v=1.7")) || await cache.match("./manifest.json");
+  return (await cache.match("./manifest.json?v=1.8")) || await cache.match("./manifest.json");
 }
 
 async function cacheRequiredFiles(cache, urls) {

@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="1.7">
+    <meta name="app-version" content="1.8">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.7">
+    <link rel="manifest" href="manifest.json?v=1.8">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -95,7 +95,10 @@
       }
 
       .hero {
-        padding: 8px 2px 6px;
+        display: grid;
+        justify-items: start;
+        gap: 8px;
+        padding: 8px 2px 10px;
       }
 
       .fuel-header h1 {
@@ -106,7 +109,7 @@
 
       .eyebrow {
         display: inline-block;
-        margin-bottom: 8px;
+        margin: 4px 0 0;
         color: var(--accent-blue);
         font-size: 0.78rem;
         font-weight: 600;
@@ -121,7 +124,7 @@
       }
 
       .subtitle {
-        margin: 10px 0 0;
+        margin: 2px 0 0;
         color: var(--muted);
         line-height: 1.45;
       }
@@ -342,7 +345,7 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        margin: 0 0 12px;
+        margin: 0 0 6px;
         color: var(--muted);
         pointer-events: none;
       }
@@ -365,6 +368,7 @@
         font-family: var(--mono);
         font-size: 0.72rem;
         letter-spacing: 0.08em;
+        line-height: 1;
         opacity: 0.92;
       }
 
@@ -976,7 +980,7 @@
         <header class="hero">
           <div class="home-logo-wrap">
             <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-            <span class="home-version">v1.7</span>
+            <span class="home-version">v1.8</span>
           </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
@@ -1011,7 +1015,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">1.7</span>
+            <span class="module-version-badge">1.8</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1114,7 +1118,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.7</span>
+              <span class="module-version-badge">1.8</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1247,7 +1251,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.7</span>
+            <span class="module-version-badge">1.8</span>
           </div>
         </header>
 
@@ -1760,7 +1764,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.7</span>
+            <span class="module-version-badge">1.8</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1905,6 +1909,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.7" defer></script>
+    <script src="app.js?v=1.8" defer></script>
   </body>
 </html>
