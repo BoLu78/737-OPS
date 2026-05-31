@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -203,6 +203,10 @@ const BRAKE_TAXI_ENERGY_RULES = {
   NG: { standard: 1.0 },
   MAX: { standard: 2.0, extremeOat: 3.0 },
 };
+const STATUTE_MILE_METERS = 1609.344;
+const NAUTICAL_MILE_METERS = 1852;
+const FEET_PER_STATUTE_MILE = 5280;
+const NM_TO_STATUTE_MILE = 1.150779448;
 // Manual checks: I-NEOU -> STEEL/Cat C/+1.0; EI-HIL -> CARBON/Cat N/+1.0;
 // EI-RZA -> MAX/+2.0 normally or +3.0 when OAT is below -25 C or above 30 C.
 const TRIP_INFO_B737_STORAGE_KEY = "737-ops-trip-info-b737-v1";
@@ -723,6 +727,9 @@ const brakeCoolingSource = document.getElementById("brake-cooling-source");
 const brakeTaxiDistanceFields = document.getElementById("brake-taxi-distance-fields");
 const brakeTaxiTimeFields = document.getElementById("brake-taxi-time-fields");
 const brakeCoolingConservativeSpeedButton = document.getElementById("brake-cooling-conservative-speed-button");
+const brakeUseDistanceAction = document.getElementById("brake-use-distance-action");
+const brakeUseDistanceButton = document.getElementById("brake-use-distance-button");
+const brakeUseTimeButton = document.getElementById("brake-use-time-button");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -801,6 +808,18 @@ function attachEventListeners() {
 
   brakeCoolingConservativeSpeedButton.addEventListener("click", () => {
     brakeCoolingForm.elements.taxiSpeedKt.value = "20";
+    clearBrakeCoolingValidation();
+  });
+
+  brakeUseDistanceButton.addEventListener("click", () => {
+    brakeCoolingForm.elements.taxiMode.value = "distance";
+    updateBrakeCoolingTaxiModeFields();
+    clearBrakeCoolingValidation();
+  });
+
+  brakeUseTimeButton.addEventListener("click", () => {
+    brakeCoolingForm.elements.taxiMode.value = "timeSpeed";
+    updateBrakeCoolingTaxiModeFields();
     clearBrakeCoolingValidation();
   });
 
@@ -1154,7 +1173,7 @@ function initializeBrakeCoolingModule() {
 function resetBrakeCoolingModule(shouldFocus) {
   brakeCoolingForm.reset();
   brakeCoolingForm.elements.registration.value = "";
-  brakeCoolingForm.elements.taxiMode.value = "distance";
+  brakeCoolingForm.elements.taxiMode.value = "timeSpeed";
   brakeCoolingForm.elements.taxiDistanceUnit.value = "meters";
   brakeCoolingForm.elements.taxiSpeedKt.value = "10";
   updateBrakeCoolingTaxiModeFields();
@@ -1244,20 +1263,18 @@ function readBrakeTaxiInput(taxiMode) {
       return null;
     }
 
-    if (!["meters", "NM"].includes(taxiDistanceUnit)) {
-      showBrakeCoolingValidation("Select meters or NM for taxi distance.");
+    if (!["meters", "km", "feet", "NM"].includes(taxiDistanceUnit)) {
+      showBrakeCoolingValidation("Select meters, km, feet, or NM for taxi distance.");
       return null;
     }
 
-    const taxiMiles = taxiDistanceUnit === "meters" ? taxiDistance / 1852 : taxiDistance;
+    const taxiMiles = convertBrakeDistanceToStatuteMiles(taxiDistance, taxiDistanceUnit);
 
     return {
       taxiDistance,
       taxiDistanceUnit,
       taxiMiles,
-      taxiInputDisplay: taxiDistanceUnit === "meters"
-        ? `${formatBrakeDistanceMeters(taxiDistance)} m`
-        : `${formatBrakeTaxiMiles(taxiDistance)} NM`,
+      taxiInputDisplay: formatBrakeTaxiDistanceInput(taxiDistance, taxiDistanceUnit),
     };
   }
 
@@ -1269,15 +1286,22 @@ function readBrakeTaxiInput(taxiMode) {
     return null;
   }
 
-  if (taxiSpeedKt === null || taxiSpeedKt < 0 || taxiSpeedKt > 20) {
+  if (taxiSpeedKt === null || taxiSpeedKt < 0) {
     showBrakeCoolingValidation("Enter a valid taxi speed between 0 and 20 kt.");
     return null;
   }
 
+  if (taxiSpeedKt > 20) {
+    showBrakeCoolingValidation("Taxi speed cannot exceed 20 kt.");
+    return null;
+  }
+
+  const distanceNm = taxiSpeedKt * taxiMinutes / 60;
+
   return {
     taxiMinutes,
     taxiSpeedKt,
-    taxiMiles: taxiSpeedKt * taxiMinutes / 60,
+    taxiMiles: distanceNm * NM_TO_STATUTE_MILE,
     taxiInputDisplay: `${formatBrakeTaxiMinutes(taxiMinutes)} min at ${formatBrakeTaxiMinutes(taxiSpeedKt)} kt`,
   };
 }
@@ -1382,7 +1406,7 @@ function renderBrakeCoolingResult(result) {
     ["Brake type", result.config.brakeType],
     ["Official Ground Cooling Time", formatBrakeCoolingTime(result.officialGroundCoolingTime)],
     ["Taxi input used", result.taxiInputDisplay],
-    ["Taxi miles used", `${formatBrakeTaxiMiles(result.taxiMiles)} NM`],
+    ["Taxi distance used", `${formatBrakeTaxiMiles(result.taxiMiles)} statute mi`],
     [
       "Corrected Recommended Ground Cooling Time",
       result.cooling.groundDisplay,
@@ -1422,6 +1446,7 @@ function updateBrakeCoolingTaxiModeFields() {
   const taxiMode = brakeCoolingForm.elements.taxiMode.value;
   brakeTaxiDistanceFields.hidden = taxiMode !== "distance";
   brakeTaxiTimeFields.hidden = taxiMode !== "timeSpeed";
+  brakeUseDistanceAction.hidden = taxiMode === "distance";
 
   if (taxiMode === "timeSpeed" && !brakeCoolingForm.elements.taxiSpeedKt.value) {
     brakeCoolingForm.elements.taxiSpeedKt.value = "10";
@@ -4028,6 +4053,22 @@ function parseBrakeNumberField(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function convertBrakeDistanceToStatuteMiles(distance, unit) {
+  if (unit === "meters") {
+    return distance / STATUTE_MILE_METERS;
+  }
+
+  if (unit === "km") {
+    return distance / (STATUTE_MILE_METERS / 1000);
+  }
+
+  if (unit === "feet") {
+    return distance / FEET_PER_STATUTE_MILE;
+  }
+
+  return distance * NM_TO_STATUTE_MILE;
+}
+
 function getBrakeTaxiEnergyRate(aircraftFamily, oat) {
   if (aircraftFamily !== "MAX") {
     return BRAKE_TAXI_ENERGY_RULES.NG.standard;
@@ -4068,7 +4109,23 @@ function formatBrakeTaxiMiles(value) {
   });
 }
 
-function formatBrakeDistanceMeters(value) {
+function formatBrakeTaxiDistanceInput(value, unit) {
+  if (unit === "meters") {
+    return `${formatBrakeDistanceValue(value)} m`;
+  }
+
+  if (unit === "km") {
+    return `${formatBrakeDistanceValue(value)} km`;
+  }
+
+  if (unit === "feet") {
+    return `${formatBrakeDistanceValue(value)} ft`;
+  }
+
+  return `${formatBrakeDistanceValue(value)} NM`;
+}
+
+function formatBrakeDistanceValue(value) {
   return Number(value).toLocaleString("en-US", {
     useGrouping: false,
     minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
