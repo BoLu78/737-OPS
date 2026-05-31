@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="1.5">
+    <meta name="app-version" content="1.6">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.5">
+    <link rel="manifest" href="manifest.json?v=1.6">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -567,6 +567,20 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .kv-value-wrap {
+        display: grid;
+        gap: 3px;
+        justify-items: end;
+        text-align: right;
+      }
+
+      .kv-note {
+        color: var(--muted);
+        font-family: var(--sans);
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
+
       .kv-row.fuel-converted-row .kv-key,
       .kv-row.fuel-converted-row .kv-value {
         color: var(--pass);
@@ -999,7 +1013,7 @@
         <div class="home-logo-wrap">
           <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
           <span class="home-brand">737 OPS</span>
-          <span class="home-version">v1.5</span>
+          <span class="home-version">v1.6</span>
         </div>
       </section>
 
@@ -1011,7 +1025,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">1.5</span>
+            <span class="module-version-badge">1.6</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1055,53 +1069,32 @@
           <section class="card stack acn-section-card">
             <h2>Taxi correction</h2>
 
-            <input type="hidden" name="taxiMode" value="timeSpeed">
-
-            <div id="brake-taxi-time-fields" class="stack">
-              <div class="row two-col">
-                <div class="field">
-                  <label for="brake-taxi-minutes">Taxi time (minutes)</label>
-                  <input id="brake-taxi-minutes" name="taxiMinutes" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
-                </div>
-
-                <div class="field">
-                  <label for="brake-taxi-speed">Average taxi speed (kt)</label>
-                  <input id="brake-taxi-speed" name="taxiSpeedKt" class="input number-input" type="text" inputmode="decimal" autocomplete="off" value="10">
-                </div>
+            <div class="row two-col">
+              <div class="field">
+                <label for="brake-taxi-minutes">Taxi time</label>
+                <input id="brake-taxi-minutes" name="taxiMinutes" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
               </div>
 
-              <div class="actions">
-                <button class="button" type="button" id="brake-cooling-conservative-speed-button">Use conservative 20 kt</button>
+              <div class="field">
+                <label for="brake-taxi-speed">Average taxi speed</label>
+                <input id="brake-taxi-speed" name="taxiSpeedKt" class="input number-input" type="text" inputmode="decimal" autocomplete="off" value="10">
               </div>
             </div>
 
-            <div class="advanced-details" id="brake-distance-alternative">
-              <h3 class="advanced-details-title">Known taxi distance instead?</h3>
-              <div class="actions" id="brake-use-distance-action">
-                <button class="button" type="button" id="brake-use-distance-button">Use distance instead</button>
+            <div class="row two-col">
+              <div class="field">
+                <label for="brake-taxi-distance">Taxi distance</label>
+                <input id="brake-taxi-distance" name="taxiDistance" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
               </div>
 
-              <div id="brake-taxi-distance-fields" class="stack" hidden>
-                <div class="row two-col">
-                  <div class="field">
-                    <label for="brake-taxi-distance">Taxi distance</label>
-                    <input id="brake-taxi-distance" name="taxiDistance" class="input number-input" type="text" inputmode="decimal" autocomplete="off">
-                  </div>
-
-                  <div class="field">
-                    <label for="brake-taxi-distance-unit">Distance unit</label>
-                    <select id="brake-taxi-distance-unit" name="taxiDistanceUnit" class="select">
-                      <option value="meters">meters</option>
-                      <option value="km">km</option>
-                      <option value="feet">feet</option>
-                      <option value="NM">NM</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="actions">
-                  <button class="button" type="button" id="brake-use-time-button">Use taxi time instead</button>
-                </div>
+              <div class="field">
+                <label for="brake-taxi-distance-unit">Distance unit</label>
+                <select id="brake-taxi-distance-unit" name="taxiDistanceUnit" class="select">
+                  <option value="meters">meters</option>
+                  <option value="km">km</option>
+                  <option value="feet">feet</option>
+                  <option value="NM">NM</option>
+                </select>
               </div>
             </div>
 
@@ -1135,7 +1128,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.5</span>
+              <span class="module-version-badge">1.6</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1268,7 +1261,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.5</span>
+            <span class="module-version-badge">1.6</span>
           </div>
         </header>
 
@@ -1781,7 +1774,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.5</span>
+            <span class="module-version-badge">1.6</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1926,6 +1919,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.5" defer></script>
+    <script src="app.js?v=1.6" defer></script>
   </body>
 </html>

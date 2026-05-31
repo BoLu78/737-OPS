@@ -1,4 +1,4 @@
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -207,6 +207,7 @@ const STATUTE_MILE_METERS = 1609.344;
 const NAUTICAL_MILE_METERS = 1852;
 const FEET_PER_STATUTE_MILE = 5280;
 const NM_TO_STATUTE_MILE = 1.150779448;
+const KM_PER_STATUTE_MILE = 1.609344;
 // Manual checks: I-NEOU -> STEEL/Cat C/+1.0; EI-HIL -> CARBON/Cat N/+1.0;
 // EI-RZA -> MAX/+2.0 normally or +3.0 when OAT is below -25 C or above 30 C.
 const TRIP_INFO_B737_STORAGE_KEY = "737-ops-trip-info-b737-v1";
@@ -724,12 +725,6 @@ const brakeCoolingStatusSubtitle = document.getElementById("brake-cooling-status
 const brakeCoolingResultsList = document.getElementById("brake-cooling-results-list");
 const brakeCoolingWarning = document.getElementById("brake-cooling-warning");
 const brakeCoolingSource = document.getElementById("brake-cooling-source");
-const brakeTaxiDistanceFields = document.getElementById("brake-taxi-distance-fields");
-const brakeTaxiTimeFields = document.getElementById("brake-taxi-time-fields");
-const brakeCoolingConservativeSpeedButton = document.getElementById("brake-cooling-conservative-speed-button");
-const brakeUseDistanceAction = document.getElementById("brake-use-distance-action");
-const brakeUseDistanceButton = document.getElementById("brake-use-distance-button");
-const brakeUseTimeButton = document.getElementById("brake-use-time-button");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -795,32 +790,10 @@ function attachEventListeners() {
   });
 
   brakeCoolingForm.addEventListener("input", clearBrakeCoolingValidation);
-  brakeCoolingForm.addEventListener("change", (event) => {
-    if (event.target.name === "taxiMode") {
-      updateBrakeCoolingTaxiModeFields();
-    }
-    clearBrakeCoolingValidation();
-  });
+  brakeCoolingForm.addEventListener("change", clearBrakeCoolingValidation);
 
   brakeCoolingClearButton.addEventListener("click", () => {
     resetBrakeCoolingModule(true);
-  });
-
-  brakeCoolingConservativeSpeedButton.addEventListener("click", () => {
-    brakeCoolingForm.elements.taxiSpeedKt.value = "20";
-    clearBrakeCoolingValidation();
-  });
-
-  brakeUseDistanceButton.addEventListener("click", () => {
-    brakeCoolingForm.elements.taxiMode.value = "distance";
-    updateBrakeCoolingTaxiModeFields();
-    clearBrakeCoolingValidation();
-  });
-
-  brakeUseTimeButton.addEventListener("click", () => {
-    brakeCoolingForm.elements.taxiMode.value = "timeSpeed";
-    updateBrakeCoolingTaxiModeFields();
-    clearBrakeCoolingValidation();
   });
 
   form.addEventListener("submit", (event) => {
@@ -1110,7 +1083,22 @@ function renderKeyValueList(container, rows) {
     if (valueClass) {
       valueNode.classList.add(valueClass);
     }
-    valueNode.textContent = value;
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      valueNode.classList.add("kv-value-wrap");
+      const mainValue = document.createElement("span");
+      mainValue.textContent = value.value;
+      valueNode.appendChild(mainValue);
+
+      if (value.note) {
+        const note = document.createElement("span");
+        note.className = "kv-note";
+        note.textContent = value.note;
+        valueNode.appendChild(note);
+      }
+    } else {
+      valueNode.textContent = value;
+    }
 
     row.append(keyNode, valueNode);
     container.appendChild(row);
@@ -1173,10 +1161,8 @@ function initializeBrakeCoolingModule() {
 function resetBrakeCoolingModule(shouldFocus) {
   brakeCoolingForm.reset();
   brakeCoolingForm.elements.registration.value = "";
-  brakeCoolingForm.elements.taxiMode.value = "timeSpeed";
   brakeCoolingForm.elements.taxiDistanceUnit.value = "meters";
   brakeCoolingForm.elements.taxiSpeedKt.value = "10";
-  updateBrakeCoolingTaxiModeFields();
   clearBrakeCoolingValidation();
   hideBrakeCoolingResult();
 
@@ -1212,7 +1198,6 @@ function readBrakeCoolingInputValues() {
     brakeCoolingForm.elements.officialGroundCoolingTime.value
   );
   const oat = parseBrakeNumberField(brakeCoolingForm.elements.oat.value);
-  const taxiMode = brakeCoolingForm.elements.taxiMode.value;
 
   if (officialGroundCoolingTime === null || officialGroundCoolingTime < 0) {
     showBrakeCoolingValidation("Enter a valid non-negative official ground cooling time.");
@@ -1231,12 +1216,7 @@ function readBrakeCoolingInputValues() {
     return null;
   }
 
-  if (!["distance", "timeSpeed"].includes(taxiMode)) {
-    showBrakeCoolingValidation("Select a valid taxi correction mode.");
-    return null;
-  }
-
-  const taxiInput = readBrakeTaxiInput(taxiMode);
+  const taxiInput = readBrakeTaxiInput();
 
   if (!taxiInput) {
     return null;
@@ -1248,16 +1228,19 @@ function readBrakeCoolingInputValues() {
     coolingTable,
     officialGroundCoolingTime,
     oat,
-    taxiMode,
     ...taxiInput,
   };
 }
 
-function readBrakeTaxiInput(taxiMode) {
-  if (taxiMode === "distance") {
-    const taxiDistance = parseBrakeNumberField(brakeCoolingForm.elements.taxiDistance.value);
-    const taxiDistanceUnit = brakeCoolingForm.elements.taxiDistanceUnit.value;
+function readBrakeTaxiInput() {
+  const rawTaxiDistance = String(brakeCoolingForm.elements.taxiDistance.value || "").trim();
+  const rawTaxiMinutes = String(brakeCoolingForm.elements.taxiMinutes.value || "").trim();
+  const taxiDistanceUnit = brakeCoolingForm.elements.taxiDistanceUnit.value;
+  const hasTaxiDistance = rawTaxiDistance !== "";
+  const hasTaxiMinutes = rawTaxiMinutes !== "";
 
+  if (hasTaxiDistance) {
+    const taxiDistance = parseBrakeNumberField(rawTaxiDistance);
     if (taxiDistance === null || taxiDistance < 0) {
       showBrakeCoolingValidation("Enter a valid non-negative taxi distance.");
       return null;
@@ -1269,16 +1252,25 @@ function readBrakeTaxiInput(taxiMode) {
     }
 
     const taxiMiles = convertBrakeDistanceToStatuteMiles(taxiDistance, taxiDistanceUnit);
+    const taxiDistanceDisplay = normalizeNumericInput(rawTaxiDistance) ?? rawTaxiDistance;
+    const taxiInputDisplay = formatBrakeTaxiDistanceInput(taxiDistanceDisplay, taxiDistanceUnit);
 
     return {
       taxiDistance,
       taxiDistanceUnit,
       taxiMiles,
-      taxiInputDisplay: formatBrakeTaxiDistanceInput(taxiDistance, taxiDistanceUnit),
+      taxiInputDisplay: hasTaxiMinutes
+        ? `${taxiInputDisplay} — distance used, time ignored`
+        : taxiInputDisplay,
     };
   }
 
-  const taxiMinutes = parseBrakeNumberField(brakeCoolingForm.elements.taxiMinutes.value);
+  if (!hasTaxiMinutes) {
+    showBrakeCoolingValidation("Enter taxi time or taxi distance.");
+    return null;
+  }
+
+  const taxiMinutes = parseBrakeNumberField(rawTaxiMinutes);
   const taxiSpeedKt = parseBrakeNumberField(brakeCoolingForm.elements.taxiSpeedKt.value);
 
   if (taxiMinutes === null || taxiMinutes < 0) {
@@ -1406,7 +1398,13 @@ function renderBrakeCoolingResult(result) {
     ["Brake type", result.config.brakeType],
     ["Official Ground Cooling Time", formatBrakeCoolingTime(result.officialGroundCoolingTime)],
     ["Taxi input used", result.taxiInputDisplay],
-    ["Taxi distance used", `${formatBrakeTaxiMiles(result.taxiMiles)} statute mi`],
+    [
+      "Taxi distance used",
+      {
+        value: `${formatBrakeTaxiKilometers(result.taxiMiles)} km`,
+        note: `${formatBrakeTaxiMiles(result.taxiMiles)} statute mi used for Boeing taxi correction`,
+      },
+    ],
     [
       "Corrected Recommended Ground Cooling Time",
       result.cooling.groundDisplay,
@@ -1440,17 +1438,6 @@ function showBrakeCoolingValidation(message) {
 function clearBrakeCoolingValidation() {
   brakeCoolingValidationMessage.textContent = "";
   brakeCoolingValidationMessage.hidden = true;
-}
-
-function updateBrakeCoolingTaxiModeFields() {
-  const taxiMode = brakeCoolingForm.elements.taxiMode.value;
-  brakeTaxiDistanceFields.hidden = taxiMode !== "distance";
-  brakeTaxiTimeFields.hidden = taxiMode !== "timeSpeed";
-  brakeUseDistanceAction.hidden = taxiMode === "distance";
-
-  if (taxiMode === "timeSpeed" && !brakeCoolingForm.elements.taxiSpeedKt.value) {
-    brakeCoolingForm.elements.taxiSpeedKt.value = "10";
-  }
 }
 
 function initializeAcnModule() {
@@ -4059,7 +4046,7 @@ function convertBrakeDistanceToStatuteMiles(distance, unit) {
   }
 
   if (unit === "km") {
-    return distance / (STATUTE_MILE_METERS / 1000);
+    return distance / KM_PER_STATUTE_MILE;
   }
 
   if (unit === "feet") {
@@ -4109,28 +4096,27 @@ function formatBrakeTaxiMiles(value) {
   });
 }
 
+function formatBrakeTaxiKilometers(statuteMiles) {
+  return Number(statuteMiles * KM_PER_STATUTE_MILE).toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
 function formatBrakeTaxiDistanceInput(value, unit) {
   if (unit === "meters") {
-    return `${formatBrakeDistanceValue(value)} m`;
+    return `${value} m`;
   }
 
   if (unit === "km") {
-    return `${formatBrakeDistanceValue(value)} km`;
+    return `${value} km`;
   }
 
   if (unit === "feet") {
-    return `${formatBrakeDistanceValue(value)} ft`;
+    return `${value} ft`;
   }
 
-  return `${formatBrakeDistanceValue(value)} NM`;
-}
-
-function formatBrakeDistanceValue(value) {
-  return Number(value).toLocaleString("en-US", {
-    useGrouping: false,
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
-    maximumFractionDigits: 1,
-  });
+  return `${value} NM`;
 }
 
 function tripInfoUppercaseLiveValue(value) {
