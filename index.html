@@ -583,6 +583,20 @@
         color: var(--fail);
       }
 
+      .kv-value.brake-cooling-ground-time-warn {
+        color: var(--accent-strong);
+        font-size: 1.12em;
+        font-weight: 800;
+      }
+
+      .brake-cooling-source {
+        margin: 0;
+        padding-top: 4px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
       #acn-report-section .kv-row.max-allowable-row {
         padding: 10px 12px;
         border-radius: 14px;
@@ -1090,13 +1104,14 @@
         </form>
 
         <section class="card result-section" id="brake-cooling-result-section" hidden>
-          <div id="brake-cooling-results-banner" class="results-banner pass" aria-live="polite">
+          <div id="brake-cooling-results-banner" class="results-banner pass" aria-live="polite" hidden>
             <p class="banner-label">STATUS</p>
             <h2 class="banner-title" id="brake-cooling-status-title">NORMAL</h2>
             <p class="banner-subtitle" id="brake-cooling-status-subtitle">Cooling schedule calculated</p>
           </div>
-          <div id="brake-cooling-results-list" class="kv-list"></div>
           <p id="brake-cooling-warning" class="result-note warn" hidden></p>
+          <div id="brake-cooling-results-list" class="kv-list"></div>
+          <p id="brake-cooling-source" class="brake-cooling-source"></p>
         </section>
       </section>
 

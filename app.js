@@ -141,11 +141,11 @@ const BRAKE_AIRCRAFT_CONFIG = {
     group: "MAX",
     aircraftModel: "B737-8 MAX",
     engineModel: "737-8/LEAP-1B27",
-    brakeType: "CARBON",
+    brakeType: "MAX",
     referenceTableKey: "MAX",
     coolingTableKey: "MAX",
     sourceTable: "737-8/LEAP-1B27 - MAX reference brake energy",
-    coolingTableLabel: "MAX Cooling Table",
+    coolingTableLabel: "MAX Cooling Time Table",
   },
   "EI-RZB": null,
   "EI-RZC": null,
@@ -232,7 +232,7 @@ const BRAKE_COOLING_TABLES = {
     ],
   },
   MAX: {
-    label: "MAX Cooling Table",
+    label: "MAX Cooling Time Table",
     cautionEnergy: 42,
     fusePlugEnergy: 58,
     points: [
@@ -765,6 +765,7 @@ const brakeCoolingStatusTitle = document.getElementById("brake-cooling-status-ti
 const brakeCoolingStatusSubtitle = document.getElementById("brake-cooling-status-subtitle");
 const brakeCoolingResultsList = document.getElementById("brake-cooling-results-list");
 const brakeCoolingWarning = document.getElementById("brake-cooling-warning");
+const brakeCoolingSource = document.getElementById("brake-cooling-source");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -1415,41 +1416,44 @@ function calculateBrakeCoolingSchedule(coolingTable, energy) {
 }
 
 function renderBrakeCoolingResult(result) {
+  const hasCoolingZoneWarning = result.cooling.tone !== "pass";
+  const displayStatus = result.cooling.status === "CAUTION ZONE" ? "CAUTION" : result.cooling.status;
+  const groundCoolingWarn = result.cooling.groundMinutes > 40;
+
   brakeCoolingResultSection.hidden = false;
+  brakeCoolingResultsBanner.hidden = !hasCoolingZoneWarning;
   brakeCoolingResultsBanner.classList.toggle("pass", result.cooling.tone === "pass");
   brakeCoolingResultsBanner.classList.toggle("warn", result.cooling.tone === "warn");
   brakeCoolingResultsBanner.classList.toggle("fail", result.cooling.tone === "fail");
-  brakeCoolingStatusTitle.textContent = result.cooling.status;
-  brakeCoolingStatusSubtitle.textContent =
-    result.cooling.status === "NORMAL"
-      ? "Cooling schedule calculated"
-      : "Special brake cooling procedure required";
+  brakeCoolingStatusTitle.textContent = displayStatus;
+  brakeCoolingStatusSubtitle.textContent = hasCoolingZoneWarning
+    ? "Special brake cooling procedure required"
+    : "";
   brakeCoolingWarning.hidden = !result.cooling.warning;
   brakeCoolingWarning.textContent = result.cooling.warning;
   brakeCoolingWarning.classList.toggle("warn", result.cooling.tone === "warn");
   brakeCoolingWarning.classList.toggle("fail", result.cooling.tone === "fail");
   renderKeyValueList(brakeCoolingResultsList, [
     ["Registration", result.registration],
-    ["Aircraft group", result.config.group],
     ["Aircraft model", result.config.aircraftModel],
-    ["Engine / model document", result.config.engineModel],
     ["Brake type", result.config.brakeType],
-    ["Source table", result.config.sourceTable],
-    ["Cooling table", result.cooling.tableLabel],
-    ["Reference Brake Energy", formatBrakeEnergy(result.referenceEnergy)],
-    ["Event Adjusted Brake Energy", formatBrakeEnergy(result.eventAdjustedEnergy)],
-    ["Taxi time", `${formatNumber(result.taxiMinutes, 1)} min`],
-    ["Taxi miles used", `${formatNumber(result.taxiMiles, 2)} NM`],
-    ["Taxi energy correction", `${formatBrakeEnergy(result.taxiEnergy)} (+${formatNumber(result.taxiEnergyRate, 1)} per taxi mile)`],
-    ["Final Adjusted Brake Energy", formatBrakeEnergy(result.adjustedEnergy)],
-    ["Recommended Ground Cooling Time", formatBrakeCoolingTime(result.cooling.groundMinutes)],
+    ["Taxi time", `${formatBrakeTaxiMinutes(result.taxiMinutes)} min`],
+    ["Taxi miles used", `${formatBrakeTaxiMiles(result.taxiMiles)} NM`],
+    [
+      "Recommended Ground Cooling Time",
+      formatBrakeCoolingTime(result.cooling.groundMinutes),
+      false,
+      "",
+      groundCoolingWarn ? "brake-cooling-ground-time-warn" : "",
+    ],
     ["Recommended Inflight Gear Down Cooling Time", formatBrakeCoolingTime(result.cooling.inflightMinutes)],
-    ["Status", result.cooling.status, result.cooling.tone !== "pass"],
   ]);
+  brakeCoolingSource.textContent = `Source: ${result.config.engineModel} — ${result.cooling.tableLabel}`;
 }
 
 function hideBrakeCoolingResult() {
   brakeCoolingResultSection.hidden = true;
+  brakeCoolingResultsBanner.hidden = true;
   brakeCoolingResultsBanner.classList.remove("pass", "warn", "fail");
   brakeCoolingStatusTitle.textContent = "NORMAL";
   brakeCoolingStatusSubtitle.textContent = "";
@@ -1457,6 +1461,7 @@ function hideBrakeCoolingResult() {
   brakeCoolingWarning.textContent = "";
   brakeCoolingWarning.hidden = true;
   brakeCoolingWarning.classList.remove("warn", "fail");
+  brakeCoolingSource.textContent = "";
 }
 
 function showBrakeCoolingValidation(message) {
@@ -4210,7 +4215,21 @@ function formatBrakeEnergy(value) {
 
 function formatBrakeCoolingTime(minutes) {
   const roundedMinutes = Math.ceil(minutes);
-  return roundedMinutes <= 0 ? "No special procedure required" : `${roundedMinutes} min`;
+  return `${Math.max(roundedMinutes, 0)} min`;
+}
+
+function formatBrakeTaxiMinutes(value) {
+  return Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatBrakeTaxiMiles(value) {
+  return Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 function tripInfoUppercaseLiveValue(value) {
