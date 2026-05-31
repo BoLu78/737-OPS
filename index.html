@@ -1,0 +1,2291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b0b0f">
+    <meta name="app-version" content="9.5">
+    <title>RampCheck</title>
+    <link rel="manifest" href="manifest.json?v=9.5">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0b0f;
+        --bg-soft: #12131a;
+        --card: rgba(22, 24, 31, 0.92);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --text: #f5f7fb;
+        --muted: #9ca4b7;
+        --accent: #4f7cff;
+        --pass: #1fbe63;
+        --fail: #df3f4e;
+        --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+        --radius: 22px;
+        --mono: "SFMono-Regular", "Menlo", "Monaco", monospace;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-right: env(safe-area-inset-right, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-left: env(safe-area-inset-left, 0px);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top, rgba(79, 124, 255, 0.12), transparent 34%),
+          linear-gradient(180deg, #12141c 0%, var(--bg) 52%);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        min-height: 100svh;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .app-shell {
+        width: min(100%, 520px);
+        min-height: 100svh;
+        margin: 0 auto;
+        padding:
+          calc(var(--safe-top) + 18px)
+          calc(var(--safe-right) + 16px)
+          calc(var(--safe-bottom) + 28px)
+          calc(var(--safe-left) + 16px);
+      }
+
+      .screen[hidden] {
+        display: none;
+      }
+
+      .screen {
+        display: grid;
+        gap: 16px;
+      }
+
+      .app-view {
+        align-content: start;
+      }
+
+      #homeView {
+        position: relative;
+      }
+
+      .hero {
+        padding: 6px 2px 4px;
+      }
+
+      .fuel-header h1 {
+        font-size: clamp(2rem, 5vw, 2.4rem);
+        font-weight: 700;
+        line-height: 1.02;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 2.4rem);
+        line-height: 1.02;
+      }
+
+      .subtitle {
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px;
+        backdrop-filter: blur(18px);
+      }
+
+      .card h2 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        letter-spacing: 0.03em;
+      }
+
+      .mono {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .fuel-header #toleranceCard {
+        margin-top: 10px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      label,
+      .field-title {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .input,
+      .select {
+        width: 100%;
+        min-height: 52px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.18s ease, background 0.18s ease;
+      }
+
+      .input:focus,
+      .select:focus {
+        border-color: rgba(79, 124, 255, 0.88);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .number-input {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+        appearance: textfield;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+      }
+
+      .number-input::-webkit-outer-spin-button,
+      .number-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+        display: none;
+      }
+
+      input[type="number"].number-input {
+        appearance: textfield;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+      }
+
+      input[type="number"].number-input::-webkit-outer-spin-button,
+      input[type="number"].number-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+        display: none;
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .segmented input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .segment {
+        min-height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-weight: 600;
+        transition:
+          background 0.18s ease,
+          border-color 0.18s ease,
+          color 0.18s ease,
+          transform 0.18s ease;
+      }
+
+      .segmented input:checked + .segment {
+        background: rgba(79, 124, 255, 0.18);
+        border-color: rgba(79, 124, 255, 0.74);
+        color: var(--text);
+        transform: translateY(-1px);
+      }
+
+      .row {
+        display: grid;
+        gap: 14px;
+      }
+
+      @media (min-width: 440px) {
+        .row.two-col {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .button {
+        min-height: 52px;
+        border: none;
+        border-radius: 18px;
+        padding: 14px 18px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .button.primary {
+        background: linear-gradient(135deg, #5c86ff 0%, #3c68f7 100%);
+      }
+
+      .button:active {
+        transform: scale(0.99);
+      }
+
+      .module-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .module-title {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .module-back {
+        width: auto;
+        min-width: 108px;
+      }
+
+      .module-header-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .module-version-badge {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        opacity: 0.58;
+        white-space: nowrap;
+      }
+
+      .home-menu {
+        display: grid;
+        gap: 12px;
+      }
+
+      .home-logo-wrap {
+        position: absolute;
+        top: 2px;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+        justify-content: flex-end;
+        padding-top: 0;
+        pointer-events: none;
+      }
+
+      .home-logo {
+        width: min(31.5vw, 108px);
+        max-width: 108px;
+        max-height: 108px;
+        display: block;
+        height: auto;
+        object-fit: contain;
+        pointer-events: none;
+        user-select: none;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+      }
+
+      .home-version {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        opacity: 0.42;
+      }
+
+      .menu-button {
+        width: 100%;
+        min-height: 104px;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: 18px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        color: var(--text);
+        text-align: left;
+        display: grid;
+        gap: 6px;
+        align-content: center;
+      }
+
+      .menu-button:focus-visible {
+        outline: 2px solid rgba(79, 124, 255, 0.88);
+        outline-offset: 2px;
+      }
+
+      .menu-button-title {
+        font-size: 1.12rem;
+        font-weight: 700;
+      }
+
+      .menu-button-note {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .inline-message {
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(223, 63, 78, 0.34);
+        background: rgba(223, 63, 78, 0.12);
+        color: #ffb4bc;
+        line-height: 1.6;
+      }
+
+      .results-banner {
+        border-radius: 24px;
+        padding: 18px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .results-banner.pass {
+        background: linear-gradient(135deg, rgba(31, 190, 99, 0.9), rgba(23, 126, 75, 0.95));
+      }
+
+      .results-banner.fail {
+        background: linear-gradient(135deg, rgba(223, 63, 78, 0.92), rgba(151, 33, 55, 0.94));
+      }
+
+      .results-banner.warn {
+        background: linear-gradient(135deg, rgba(224, 161, 53, 0.9), rgba(158, 105, 21, 0.94));
+      }
+
+      .banner-label {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .banner-title {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 800;
+      }
+
+      .banner-subtitle {
+        margin: 0;
+        font-size: 0.95rem;
+        opacity: 0.88;
+      }
+
+      .result-section {
+        display: grid;
+        gap: 12px;
+      }
+
+      .result-section.fail {
+        border-color: rgba(223, 63, 78, 0.5);
+        box-shadow: 0 14px 32px rgba(130, 24, 43, 0.24);
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 0.86rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .section-chip {
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.06);
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+
+      .section-chip.pass {
+        background: rgba(31, 190, 99, 0.18);
+        color: #baf0cf;
+      }
+
+      .section-chip.fail {
+        background: rgba(223, 63, 78, 0.18);
+        color: #ffb4bc;
+      }
+
+      .section-chip.warn {
+        background: rgba(224, 161, 53, 0.18);
+        color: #ffe2aa;
+      }
+
+      .result-card-title {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: 0.03em;
+      }
+
+      .kv-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .kv-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+      }
+
+      .kv-key {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .kv-value {
+        text-align: right;
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kv-row.fuel-converted-row .kv-key,
+      .kv-row.fuel-converted-row .kv-value {
+        color: #baf0cf;
+      }
+
+      .kv-value.fuel-converted-value {
+        color: #d9ffe6;
+        font-size: 1.06em;
+        font-weight: 800;
+      }
+
+      .kv-row.fail .kv-key,
+      .kv-row.fail .kv-value {
+        color: #ff9ea9;
+      }
+
+      #acn-report-section .kv-row.max-allowable-row {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+      }
+
+      #acn-report-section .kv-row.max-allowable-row .kv-key,
+      #acn-report-section .kv-row.max-allowable-row .kv-value {
+        font-weight: 700;
+      }
+
+      #acn-report-section .kv-row.max-allowable-pass {
+        background: rgba(31, 190, 99, 0.12);
+        border-color: rgba(31, 190, 99, 0.34);
+      }
+
+      #acn-report-section .kv-row.max-allowable-pass .kv-key,
+      #acn-report-section .kv-row.max-allowable-pass .kv-value {
+        color: #baf0cf;
+      }
+
+      #acn-report-section .kv-row.max-allowable-warn {
+        background: rgba(224, 161, 53, 0.12);
+        border-color: rgba(224, 161, 53, 0.34);
+      }
+
+      #acn-report-section .kv-row.max-allowable-warn .kv-key,
+      #acn-report-section .kv-row.max-allowable-warn .kv-value {
+        color: #ffe2aa;
+      }
+
+      #acn-report-section .kv-row.max-allowable-fail {
+        background: rgba(223, 63, 78, 0.12);
+        border-color: rgba(223, 63, 78, 0.34);
+      }
+
+      #acn-report-section .kv-row.max-allowable-fail .kv-key,
+      #acn-report-section .kv-row.max-allowable-fail .kv-value {
+        color: #ffb4bc;
+      }
+
+      .muted-note {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .result-note {
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .result-note.fail {
+        color: #ffb4bc;
+      }
+
+      .result-note.warn {
+        color: #ffe2aa;
+      }
+
+      .advanced-details {
+        display: grid;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .advanced-details-title {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      #acnView {
+        gap: 16px;
+      }
+
+      #acnView .card {
+        width: 100%;
+        padding: 20px;
+      }
+
+      #acnView .field,
+      #acnView .actions {
+        min-width: 0;
+      }
+
+      #acnView .field {
+        gap: 10px;
+      }
+
+      #acnView label {
+        line-height: 1.25;
+      }
+
+      #acnView .input,
+      #acnView .select {
+        min-height: 54px;
+      }
+
+      .acn-form {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .acn-section-card {
+        align-content: start;
+        gap: 16px;
+      }
+
+      .acn-full-row {
+        width: 100%;
+      }
+
+      .acn-result-panel {
+        gap: 18px;
+      }
+
+      .acn-result-summary {
+        margin-top: 6px;
+      }
+
+      .acn-comparison-detail {
+        margin: 0;
+      }
+
+      #acnView .actions {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      #acnView .actions .button {
+        width: 100%;
+      }
+
+      #acn-report-section .kv-row {
+        align-items: flex-start;
+      }
+
+      #acn-report-section .kv-value {
+        max-width: 58%;
+      }
+
+      #tripInfoView {
+        gap: 22px;
+      }
+
+      #tripInfoView .module-nav {
+        margin-top: 2px;
+      }
+
+      #tripInfoView .hero {
+        padding: 10px 2px 0;
+      }
+
+      #tripInfoView .hero h1 {
+        margin: 0;
+      }
+
+      #tripInfoView .card {
+        width: 100%;
+      }
+
+      .tripInfoSectionCard {
+        align-content: start;
+      }
+
+      .tripInfoUppercaseField {
+        text-transform: uppercase;
+      }
+
+      .tripInfoDateInput {
+        color-scheme: dark;
+      }
+
+      .tripInfoDateField {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .tripInfoDateField .tripInfoDateInput {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .tripInfoDateInput::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.86;
+      }
+
+      .tripInfoReadonlyInput {
+        color: rgba(245, 247, 251, 0.86);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .tripInfoTopSideRow .field[aria-hidden="true"] {
+        visibility: hidden;
+      }
+
+      .tripInfoCheckboxControl {
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .tripInfoCheckboxControl input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--accent);
+      }
+
+      .tripInfoCheckboxGroup {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tripInfoControlField {
+        gap: 8px;
+      }
+
+      .tripInfoAlignedField .input,
+      .tripInfoAlignedField .select {
+        min-height: 52px;
+        border-radius: 16px;
+        font-size: 1rem;
+      }
+
+      .tripInfoCompactOption {
+        width: 100%;
+      }
+
+      .wrap-fuel-section {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .tripInfoEetRow {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .tripInfoEetRow .field {
+        flex: 0 0 84px;
+      }
+
+      .tripInfoEetRow .input {
+        text-align: center;
+      }
+
+      .tripInfoCrewInputs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .tripInfoCrewSubField {
+        gap: 6px;
+      }
+
+      .tripInfoCrewSubLabel {
+        font-size: 0.78rem;
+      }
+
+      .tripInfoSecondaryField {
+        gap: 6px;
+      }
+
+      .tripInfoSecondaryLabel {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .tripInfoSecondaryInputWrap {
+        position: relative;
+      }
+
+      .tripInfoSecondaryInput {
+        min-height: 40px;
+        border-radius: 12px;
+        padding: 10px 40px 10px 12px;
+        font-size: 0.92rem;
+      }
+
+      .tripInfoSecondarySuffix {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      .tripInfoRemarksTextarea {
+        min-height: 108px;
+        padding-top: 16px;
+        padding-bottom: 16px;
+        line-height: 1.45;
+        resize: vertical;
+      }
+
+      .tripInfoPresetRemarkOption {
+        min-height: 40px;
+        padding: 9px 12px;
+        font-size: 0.88rem;
+      }
+
+      .tripInfoSignatureCanvas {
+        display: block;
+        width: 100%;
+        height: 180px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #ffffff;
+        touch-action: none;
+      }
+
+      .tripInfoPreviewSection {
+        gap: 16px;
+      }
+
+      .tripInfoPreviewCard {
+        gap: 16px;
+      }
+
+      .tripInfoPreviewMount {
+        width: min(100%, 390px);
+        margin: 0 auto;
+        padding: 12px;
+        border-radius: 16px;
+        background: #dfe5ec;
+      }
+
+      .tripInfoPreviewMount svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #ffffff;
+        border-radius: 4px;
+        box-shadow: 0 10px 22px rgba(15, 18, 28, 0.14);
+      }
+
+      .tripInfoExportActions {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (min-width: 440px) {
+        .tripInfoExportActions {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      .tripInfoExportCanvas {
+        display: none;
+      }
+
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="screen app-view" id="homeView" aria-hidden="false">
+        <header class="hero">
+          <span class="eyebrow">OFFLINE OPS TOOL</span>
+          <h1>RampCheck</h1>
+          <p class="subtitle">Select a module to continue.</p>
+        </header>
+
+        <section class="home-menu" aria-label="Module menu">
+          <button class="menu-button" type="button" id="openFuelBtn">
+            <span class="menu-button-title">Fuel Check</span>
+            <span class="menu-button-note">Tolerance check for remaining fuel</span>
+          </button>
+          <button class="menu-button" type="button" id="openAcnBtn">
+            <span class="menu-button-title">ACN-PCN</span>
+            <span class="menu-button-note">Pavement compatibility module</span>
+          </button>
+          <button class="menu-button" type="button" id="openTripInfoBtn">
+            <span class="menu-button-title">TRIP INFO</span>
+          </button>
+        </section>
+
+        <div class="home-logo-wrap">
+          <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
+          <span class="home-version">9.5</span>
+        </div>
+      </section>
+
+      <section class="screen app-view" id="fuelView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromFuelBtn">Back</button>
+        </div>
+
+        <section class="screen" id="input-screen">
+          <header class="hero fuel-header">
+            <div class="module-header-row">
+              <h1>FuelCk</h1>
+              <span class="module-version-badge">9.5</span>
+            </div>
+            <div class="card" id="toleranceCard">
+              <h2>Tolerance Rule</h2>
+              <div id="toleranceText" class="mono">—</div>
+            </div>
+          </header>
+
+          <form id="fuel-form" class="stack" novalidate>
+            <div class="card stack">
+              <div class="field">
+                <div class="segmented" role="radiogroup" aria-label="Aircraft selector">
+                  <label>
+                    <input type="radio" name="aircraft" value="B787" checked>
+                    <span class="segment">B787</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="aircraft" value="B737">
+                    <span class="segment">B737</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card stack">
+              <div class="row two-col">
+                <div class="field">
+                  <label for="ramp-fuel">Ramp Fuel (kg)</label>
+                  <input
+                    id="ramp-fuel"
+                    name="rampFuel"
+                    class="input number-input"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="[0-9.,]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+                <div class="field">
+                  <label for="remaining-fuel">Remaining Fuel (kg)</label>
+                  <input
+                    id="remaining-fuel"
+                    name="remainingFuel"
+                    class="input number-input"
+                    type="text"
+                    inputmode="decimal"
+                    pattern="[0-9.,]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="card stack">
+              <div class="field">
+                <span class="field-title">Unit selector</span>
+                <div class="segmented" role="radiogroup" aria-label="Density unit selector">
+                  <label>
+                    <input type="radio" name="densityUnit" value="kg/L" checked>
+                    <span class="segment">kg/L</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="densityUnit" value="lbs/US gal">
+                    <span class="segment">lbs/US gal</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="density-value">Value</label>
+                <input
+                  id="density-value"
+                  name="densityValue"
+                  class="input number-input"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="[0-9.,]*"
+                  value="0.796"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="card stack">
+              <div class="field">
+                <span class="field-title">Volume unit</span>
+                <div class="segmented" role="radiogroup" aria-label="Volume unit selector">
+                  <label>
+                    <input type="radio" name="volumeUnit" value="Liters" checked>
+                    <span class="segment">Liters</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="volumeUnit" value="US gallons">
+                    <span class="segment">US gallons</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="actual-volume">Volume input</label>
+                <input
+                  id="actual-volume"
+                  name="actualVolume"
+                  class="input number-input"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="[0-9.,]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="button" type="button" id="clear-button">CLEAR</button>
+              <button class="button primary" type="submit">CHECK</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="screen" id="results-screen" hidden>
+          <div id="results-banner" class="results-banner fail" aria-live="polite">
+            <p class="banner-label" id="banner-label">FAIL</p>
+            <h2 class="banner-title" id="banner-title">B787</h2>
+            <p class="banner-subtitle" id="banner-subtitle">Outside tolerance</p>
+          </div>
+
+          <section class="card result-section" id="fuel-result-section">
+            <h3 class="result-card-title">Uplift Crosscheck</h3>
+            <div id="fuel-results-list" class="kv-list"></div>
+            <div id="fuel-advanced-details" class="advanced-details" hidden>
+              <h4 class="advanced-details-title">Advanced details</h4>
+              <div id="fuel-advanced-list" class="kv-list"></div>
+            </div>
+          </section>
+
+        </section>
+      </section>
+
+      <section class="screen app-view" id="tripInfoSelectorView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromTripInfoSelectorBtn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1>TRIP INFO</h1>
+            <span class="module-version-badge">9.5</span>
+          </div>
+        </header>
+
+        <section class="home-menu" aria-label="Trip Info aircraft selector">
+          <button class="menu-button" type="button" id="openTripInfoB787Btn">
+            <span class="menu-button-title">B787</span>
+          </button>
+          <button class="menu-button" type="button" id="openTripInfoB737Btn">
+            <span class="menu-button-title">B737</span>
+          </button>
+        </section>
+      </section>
+
+      <section class="screen app-view" id="tripInfoView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromTripInfoBtn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1 id="tripInfoTitle">TRIP INFO</h1>
+            <span class="module-version-badge">9.5</span>
+          </div>
+        </header>
+
+        <form id="tripInfo-form" class="stack" novalidate>
+          <section class="card stack tripInfoSectionCard">
+            <h2>Flight / Routing</h2>
+
+            <div class="field">
+              <label for="tripInfo-flight-number">Flight Number</label>
+              <input
+                id="tripInfo-flight-number"
+                name="flightNumber"
+                class="input tripInfoUppercaseField"
+                type="text"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfo-from">From</label>
+                <input
+                  id="tripInfo-from"
+                  name="from"
+                  class="input mono tripInfoUppercaseField"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  maxlength="3"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfo-to">To</label>
+                <input
+                  id="tripInfo-to"
+                  name="to"
+                  class="input mono tripInfoUppercaseField"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  maxlength="3"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="row two-col">
+              <div class="field tripInfoDateField">
+                <label for="tripInfo-date">Date</label>
+                <input
+                  id="tripInfo-date"
+                  name="date"
+                  class="input mono tripInfoDateInput"
+                  type="date"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <span class="field-title">Crew</span>
+                <div class="tripInfoCrewInputs">
+                  <div class="field tripInfoCrewSubField">
+                    <label class="tripInfoCrewSubLabel" for="tripInfo-crew-pilots">Pilots</label>
+                    <input
+                      id="tripInfo-crew-pilots"
+                      name="crewPilots"
+                      class="input number-input mono"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      value="2"
+                      autocomplete="off"
+                      required
+                    >
+                  </div>
+
+                  <div class="field tripInfoCrewSubField">
+                    <label class="tripInfoCrewSubLabel" for="tripInfo-crew-cabin">Cabin</label>
+                    <input
+                      id="tripInfo-crew-cabin"
+                      name="crewCabin"
+                      class="input number-input mono"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      value="9"
+                      autocomplete="off"
+                      required
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="tripInfo-crew-bag">Crew Bag</label>
+                <input
+                  id="tripInfo-crew-bag"
+                  name="crewBag"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  autocomplete="off"
+                >
+
+                <div class="field tripInfoSecondaryField">
+                  <label class="tripInfoSecondaryLabel" for="tripInfo-crew-bag-weight">Bag weight</label>
+                  <div class="tripInfoSecondaryInputWrap">
+                    <input
+                      id="tripInfo-crew-bag-weight"
+                      name="crewBagWeight"
+                      class="input number-input tripInfoSecondaryInput"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      autocomplete="off"
+                    >
+                    <span class="tripInfoSecondarySuffix">kg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="tripInfo-pantry">Pantry</label>
+                <select
+                  id="tripInfo-pantry"
+                  name="pantry"
+                  class="select tripInfoUppercaseField"
+                >
+                  <option value="" selected></option>
+                  <option value="Z">Z - No Catering</option>
+                  <option value="SH">SH - SHORT Haul</option>
+                  <option value="MH">MH - MEDIUM Haul</option>
+                  <option value="LH">LH - LONG Haul</option>
+                  <option value="CH">CH - CHINA Flights</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoControlField" id="tripInfo-fak-field">
+                <div class="field-title">FAK</div>
+                <label class="tripInfoCheckboxControl" for="tripInfo-include-fak">
+                  <input
+                    id="tripInfo-include-fak"
+                    name="includeFak"
+                    type="checkbox"
+                    checked
+                  >
+                  <span>FAK</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="flight-type">Flight Type</label>
+                <select
+                  id="flight-type"
+                  name="flightType"
+                  class="select tripInfoUppercaseField"
+                >
+                  <option value="" selected>-- SELECT --</option>
+                  <option value="SCHED">SCHEDULE FLT</option>
+                  <option value="CHARTER">CHARTER FLT</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow" id="tripInfo-water-correction-field">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoControlField">
+                <div class="field-title">Water Correction</div>
+                <div class="tripInfoCheckboxGroup">
+                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-standard">
+                    <input
+                      id="water-standard"
+                      name="waterMode"
+                      type="radio"
+                      value="STANDARD"
+                    >
+                    <span>STANDARD</span>
+                  </label>
+                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-80">
+                    <input
+                      id="water-80"
+                      name="waterMode"
+                      type="radio"
+                      value="80"
+                    >
+                    <span>80 &rarr; 100</span>
+                  </label>
+                  <label class="tripInfoCheckboxControl tripInfoCompactOption tripInfoWaterModeOption" for="water-50">
+                    <input
+                      id="water-50"
+                      name="waterMode"
+                      type="radio"
+                      value="50"
+                    >
+                    <span>50 &rarr; 100</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfo-remarks-free-text">Remarks</label>
+              <textarea
+                id="tripInfo-remarks-free-text"
+                name="remarksFreeText"
+                class="input tripInfoRemarksTextarea"
+                rows="2"
+                autocomplete="off"
+              ></textarea>
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Aircraft / Crew</h2>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfo-aircraft-registration">A/C Registration</label>
+                <select
+                  id="tripInfo-aircraft-registration"
+                  name="aircraftRegistration"
+                  class="select tripInfoUppercaseField"
+                  required
+                >
+                  <option value="EI-NEO" selected>EI-NEO</option>
+                  <option value="EI-NEU">EI-NEU</option>
+                  <option value="EI-NEW">EI-NEW</option>
+                  <option value="EI-NUA">EI-NUA</option>
+                  <option value="EI-NYE">EI-NYE</option>
+                  <option value="EI-XIN">EI-XIN</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="tripInfo-aircraft-type">A/C Type</label>
+                <select
+                  id="tripInfo-aircraft-type"
+                  name="aircraftType"
+                  class="select tripInfoUppercaseField"
+                  required
+                >
+                  <option value="B789" selected>B789</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfo-captain-name">Captain Name</label>
+              <input
+                id="tripInfo-captain-name"
+                name="captainName"
+                class="input tripInfoUppercaseField"
+                type="text"
+                autocomplete="off"
+                required
+              >
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Weights</h2>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfo-dow">DOW</label>
+                <input
+                  id="tripInfo-dow"
+                  name="dow"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfo-doi">DOI</label>
+                <input
+                  id="tripInfo-doi"
+                  name="doi"
+                  class="input number-input"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfo-max-zfw">Max ZFW</label>
+                <input
+                  id="tripInfo-max-zfw"
+                  name="maxZfw"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  value="181.436"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfo-max-tow">Max or Restricted TOW</label>
+                <input
+                  id="tripInfo-max-tow"
+                  name="maxTow"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  value="247.207"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfo-max-ldw">Max or Restricted LDW</label>
+              <input
+                id="tripInfo-max-ldw"
+                name="maxLdw"
+                class="input number-input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9., ]*"
+                value="192.776"
+                autocomplete="off"
+                required
+              >
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Fuel / Time</h2>
+
+            <div class="field">
+              <label for="tripInfo-trip-fuel">Trip Fuel</label>
+              <input
+                id="tripInfo-trip-fuel"
+                name="tripFuel"
+                class="input number-input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9., ]*"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <input
+              id="tripInfo-takeoff-fuel"
+              name="takeOffFuel"
+              type="hidden"
+            >
+
+            <div class="wrap-fuel-section">
+              <div class="field">
+                <label for="tripInfo-taxi-fuel">Taxi Fuel</label>
+                <input
+                  id="tripInfo-taxi-fuel"
+                  name="taxiFuel"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfo-block-fuel">Block Fuel</label>
+                <input
+                  id="tripInfo-block-fuel"
+                  name="blockFuel"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <span class="field-title">EET</span>
+              <div class="tripInfoEetRow">
+                <div class="field">
+                  <label for="tripInfo-eet-hours">hrs</label>
+                  <input
+                    id="tripInfo-eet-hours"
+                    name="eetHours"
+                    class="input number-input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+
+                <div class="field">
+                  <label for="tripInfo-eet-minutes">min</label>
+                  <input
+                    id="tripInfo-eet-minutes"
+                    name="eetMinutes"
+                    class="input number-input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Captain Signature</h2>
+            <canvas
+              id="tripInfo-signature-canvas"
+              class="tripInfoSignatureCanvas"
+              aria-label="Captain signature pad"
+            ></canvas>
+            <button
+              class="button"
+              type="button"
+              id="tripInfo-clear-signature-button"
+            >
+              Clear Signature
+            </button>
+          </section>
+
+          <p
+            id="tripInfo-validation-message"
+            class="inline-message"
+            aria-live="polite"
+            hidden
+          ></p>
+
+          <div class="actions">
+            <button class="button" type="button" id="tripInfo-reset-button">RESET</button>
+            <button class="button primary" type="submit" id="tripInfo-generate-button">
+              GENERATE
+            </button>
+          </div>
+        </form>
+
+        <section class="screen tripInfoPreviewSection" id="tripInfo-preview-section" hidden>
+          <section class="card tripInfoPreviewCard">
+            <h2>Preview</h2>
+            <div id="tripInfo-preview-mount" class="tripInfoPreviewMount"></div>
+          </section>
+
+          <div class="actions tripInfoExportActions">
+            <button class="button" type="button" id="tripInfo-download-pdf-button">
+              Download PDF
+            </button>
+            <button class="button" type="button" id="tripInfo-download-png-button">
+              Download PNG
+            </button>
+            <button class="button primary" type="button" id="tripInfo-share-button">
+              Share
+            </button>
+          </div>
+
+          <canvas id="tripInfo-export-canvas" class="tripInfoExportCanvas" hidden></canvas>
+        </section>
+      </section>
+
+      <section class="screen app-view" id="tripInfoB737View" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromTripInfoB737Btn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1>TRIP INFO B737</h1>
+            <span class="module-version-badge">9.5</span>
+          </div>
+        </header>
+
+        <form id="tripInfoB737-form" class="stack" novalidate>
+          <section class="card stack tripInfoSectionCard">
+            <h2>Flight / Routing</h2>
+
+            <div class="field">
+              <label for="tripInfoB737-aircraft-id">Aircraft</label>
+              <select
+                id="tripInfoB737-aircraft-id"
+                name="aircraftId"
+                class="select"
+                autocomplete="off"
+              >
+                <optgroup label="NG">
+                  <option value="I-NEOU">B737-800 NG — I-NEOU</option>
+                  <option value="I-NEOZ">B737-800 NG — I-NEOZ</option>
+                  <option value="EI-HIL">B737-800 NG — EI-HIL</option>
+                  <option value="EI-HIM">B737-800 NG — EI-HIM</option>
+                </optgroup>
+                <optgroup label="MAX">
+                  <option value="EI-RZA">B737-8 MAX — EI-RZA</option>
+                  <option value="EI-RZB">B737-8 MAX — EI-RZB</option>
+                  <option value="EI-RZC">B737-8 MAX — EI-RZC</option>
+                  <option value="EI-RZD">B737-8 MAX — EI-RZD</option>
+                  <option value="EI-RZE">B737-8 MAX — EI-RZE</option>
+                  <option value="EI-RZF">B737-8 MAX — EI-RZF</option>
+                  <option value="EI-RZG">B737-8 MAX — EI-RZG</option>
+                  <option value="EI-RZH">B737-8 MAX — EI-RZH</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="tripInfoB737-flight-number">Flight Number</label>
+              <input
+                id="tripInfoB737-flight-number"
+                name="flightNumber"
+                class="input tripInfoUppercaseField"
+                type="text"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfoB737-from">From</label>
+                <input
+                  id="tripInfoB737-from"
+                  name="from"
+                  class="input mono tripInfoUppercaseField"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  maxlength="3"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfoB737-to">To</label>
+                <input
+                  id="tripInfoB737-to"
+                  name="to"
+                  class="input mono tripInfoUppercaseField"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  maxlength="3"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="row two-col">
+              <div class="field tripInfoDateField">
+                <label for="tripInfoB737-date">Date</label>
+                <input
+                  id="tripInfoB737-date"
+                  name="date"
+                  class="input mono tripInfoDateInput"
+                  type="date"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <span class="field-title">Crew</span>
+                <div class="tripInfoCrewInputs">
+                  <div class="field tripInfoCrewSubField">
+                    <label class="tripInfoCrewSubLabel" for="tripInfoB737-crew-pilots">Pilots</label>
+                    <input
+                      id="tripInfoB737-crew-pilots"
+                      name="crewPilots"
+                      class="input number-input mono"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      value="2"
+                      autocomplete="off"
+                      required
+                    >
+                  </div>
+
+                  <div class="field tripInfoCrewSubField">
+                    <label class="tripInfoCrewSubLabel" for="tripInfoB737-crew-cabin">Cabin</label>
+                    <input
+                      id="tripInfoB737-crew-cabin"
+                      name="crewCabin"
+                      class="input number-input mono"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      value="4"
+                      autocomplete="off"
+                      required
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="tripInfoB737-crew-bag">Crew Bag</label>
+                <input
+                  id="tripInfoB737-crew-bag"
+                  name="crewBag"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  autocomplete="off"
+                >
+
+                <div class="field tripInfoSecondaryField">
+                  <label class="tripInfoSecondaryLabel" for="tripInfoB737-crew-bag-weight">Bag weight</label>
+                  <div class="tripInfoSecondaryInputWrap">
+                    <input
+                      id="tripInfoB737-crew-bag-weight"
+                      name="crewBagWeight"
+                      class="input number-input tripInfoSecondaryInput"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      autocomplete="off"
+                    >
+                    <span class="tripInfoSecondarySuffix">kg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="tripInfoB737-pantry">Pantry</label>
+                <select
+                  id="tripInfoB737-pantry"
+                  name="pantry"
+                  class="select tripInfoUppercaseField"
+                >
+                  <option value="Z" selected>Z - No Catering</option>
+                  <option value="A">Group A</option>
+                  <option value="B">Group B</option>
+                  <option value="C">Group C</option>
+                  <option value="D">Group D</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoControlField">
+                <div class="field-title">Spare MLG</div>
+                <label class="tripInfoCheckboxControl" for="tripInfoB737-include-spare-mlg">
+                  <input
+                    id="tripInfoB737-include-spare-mlg"
+                    name="includeSpareMlg"
+                    type="checkbox"
+                    checked
+                  >
+                  <span>Spare MLG</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="row two-col tripInfoTopSideRow">
+              <div class="field" aria-hidden="true"></div>
+
+              <div class="field tripInfoAlignedField">
+                <label for="tripInfoB737-flight-type">Flight Type</label>
+                <select
+                  id="tripInfoB737-flight-type"
+                  name="flightType"
+                  class="select tripInfoUppercaseField"
+                >
+                  <option value="" selected>-- SELECT --</option>
+                  <option value="SCHED">SCHEDULE FLT</option>
+                  <option value="CHARTER">CHARTER FLT</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfoB737-remarks-free-text">Remarks</label>
+              <textarea
+                id="tripInfoB737-remarks-free-text"
+                name="remarksFreeText"
+                class="input tripInfoRemarksTextarea"
+                rows="2"
+                autocomplete="off"
+              ></textarea>
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Aircraft / Crew</h2>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfoB737-aircraft-registration">A/C Registration</label>
+                <select
+                  id="tripInfoB737-aircraft-registration"
+                  name="aircraftRegistration"
+                  class="select tripInfoUppercaseField"
+                  required
+                >
+                  <option value="I-NEOU" selected>I-NEOU</option>
+                  <option value="I-NEOZ">I-NEOZ</option>
+                  <option value="EI-HIL">EI-HIL</option>
+                  <option value="EI-HIM">EI-HIM</option>
+                  <option value="EI-RZA">EI-RZA</option>
+                  <option value="EI-RZB">EI-RZB</option>
+                  <option value="EI-RZC">EI-RZC</option>
+                  <option value="EI-RZD">EI-RZD</option>
+                  <option value="EI-RZE">EI-RZE</option>
+                  <option value="EI-RZF">EI-RZF</option>
+                  <option value="EI-RZG">EI-RZG</option>
+                  <option value="EI-RZH">EI-RZH</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="tripInfoB737-aircraft-type">A/C Type</label>
+                <input
+                  id="tripInfoB737-aircraft-type"
+                  name="aircraftType"
+                  class="input tripInfoUppercaseField"
+                  type="text"
+                  value="B737-800 NG"
+                  readonly
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfoB737-captain-name">Captain Name</label>
+              <input
+                id="tripInfoB737-captain-name"
+                name="captainName"
+                class="input tripInfoUppercaseField"
+                type="text"
+                autocomplete="off"
+                required
+              >
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Weights</h2>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfoB737-dow">DOW</label>
+                <input
+                  id="tripInfoB737-dow"
+                  name="dow"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfoB737-doi">DOI</label>
+                <input
+                  id="tripInfoB737-doi"
+                  name="doi"
+                  class="input number-input"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="row two-col">
+              <div class="field">
+                <label for="tripInfoB737-max-zfw">Max ZFW</label>
+                <input
+                  id="tripInfoB737-max-zfw"
+                  name="maxZfw"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  value="61688"
+                  autocomplete="off"
+                  readonly
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfoB737-max-tow">Max or Restricted TOW</label>
+                <input
+                  id="tripInfoB737-max-tow"
+                  name="maxTow"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  value="78925"
+                  autocomplete="off"
+                  readonly
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tripInfoB737-max-ldw">Max or Restricted LDW</label>
+              <input
+                id="tripInfoB737-max-ldw"
+                name="maxLdw"
+                class="input number-input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9., ]*"
+                value="66224"
+                autocomplete="off"
+                readonly
+                required
+              >
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Fuel / Time</h2>
+
+            <div class="field">
+              <label for="tripInfoB737-trip-fuel">Trip Fuel</label>
+              <input
+                id="tripInfoB737-trip-fuel"
+                name="tripFuel"
+                class="input number-input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9., ]*"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <input
+              id="tripInfoB737-takeoff-fuel"
+              name="takeOffFuel"
+              type="hidden"
+            >
+
+            <div class="wrap-fuel-section">
+              <div class="field">
+                <label for="tripInfoB737-taxi-fuel">Taxi Fuel</label>
+                <input
+                  id="tripInfoB737-taxi-fuel"
+                  name="taxiFuel"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="tripInfoB737-block-fuel">Block Fuel</label>
+                <input
+                  id="tripInfoB737-block-fuel"
+                  name="blockFuel"
+                  class="input number-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9., ]*"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <span class="field-title">EET</span>
+              <div class="tripInfoEetRow">
+                <div class="field">
+                  <label for="tripInfoB737-eet-hours">hrs</label>
+                  <input
+                    id="tripInfoB737-eet-hours"
+                    name="eetHours"
+                    class="input number-input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+
+                <div class="field">
+                  <label for="tripInfoB737-eet-minutes">min</label>
+                  <input
+                    id="tripInfoB737-eet-minutes"
+                    name="eetMinutes"
+                    class="input number-input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="off"
+                    required
+                  >
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card stack tripInfoSectionCard">
+            <h2>Captain Signature</h2>
+            <canvas
+              id="tripInfoB737-signature-canvas"
+              class="tripInfoSignatureCanvas"
+              aria-label="Captain signature pad"
+            ></canvas>
+            <button
+              class="button"
+              type="button"
+              id="tripInfoB737-clear-signature-button"
+            >
+              Clear Signature
+            </button>
+          </section>
+
+          <p
+            id="tripInfoB737-validation-message"
+            class="inline-message"
+            aria-live="polite"
+            hidden
+          ></p>
+
+          <div class="actions">
+            <button class="button" type="button" id="tripInfoB737-reset-button">RESET</button>
+            <button class="button primary" type="submit" id="tripInfoB737-generate-button">
+              GENERATE
+            </button>
+          </div>
+        </form>
+
+        <section class="screen tripInfoPreviewSection" id="tripInfoB737-preview-section" hidden>
+          <section class="card tripInfoPreviewCard">
+            <h2>Preview</h2>
+            <div id="tripInfoB737-preview-mount" class="tripInfoPreviewMount"></div>
+          </section>
+
+          <div class="actions tripInfoExportActions">
+            <button class="button" type="button" id="tripInfoB737-download-pdf-button">
+              Download PDF
+            </button>
+            <button class="button" type="button" id="tripInfoB737-download-png-button">
+              Download PNG
+            </button>
+            <button class="button primary" type="button" id="tripInfoB737-share-button">
+              Share
+            </button>
+          </div>
+
+          <canvas id="tripInfoB737-export-canvas" class="tripInfoExportCanvas" hidden></canvas>
+        </section>
+      </section>
+
+      <section class="screen app-view" id="acnView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromAcnBtn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1>ACN-PCN</h1>
+            <span class="module-version-badge">9.5</span>
+          </div>
+          <p class="subtitle">Pavement compatibility</p>
+        </header>
+
+        <form id="acn-form" class="stack acn-form" novalidate>
+          <section class="card stack acn-section-card">
+            <h2>PCN Coding</h2>
+
+            <div class="field">
+              <label for="acn-pcn-number">PCN number</label>
+              <input
+                id="acn-pcn-number"
+                name="pcnNumber"
+                class="input number-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="acn-pavement-type">Pavement type</label>
+              <select
+                id="acn-pavement-type"
+                name="pavementType"
+                class="select"
+                required
+              >
+                <option value="">Select pavement type</option>
+                <option value="R" selected>R = Rigid</option>
+                <option value="F">F = Flexible</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="acn-subgrade">Subgrade</label>
+              <select id="acn-subgrade" name="subgrade" class="select" required>
+                <option value="">Select subgrade</option>
+                <option value="A">A = High</option>
+                <option value="B" selected>B = Medium</option>
+                <option value="C">C = Low</option>
+                <option value="D">D = Ultra Low</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="acn-tire-code">Tire pressure category</label>
+              <select id="acn-tire-code" name="tireCode" class="select" required>
+                <option value="">Select tire pressure category</option>
+                <option value="W">W = Unlimited</option>
+                <option value="X" selected>X = High (max 254 psi)</option>
+                <option value="Y">Y = Medium (max 181 psi)</option>
+                <option value="Z">Z = Low (max 73 psi)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="acn-evaluation-method">Evaluation method</label>
+              <select
+                id="acn-evaluation-method"
+                name="evaluationMethod"
+                class="select"
+                required
+              >
+                <option value="">Select evaluation method</option>
+                <option value="T" selected>T = Technical</option>
+                <option value="U">U = Using aircraft experience</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="card stack acn-section-card">
+            <h2>Aircraft / Weight</h2>
+
+            <div class="field">
+              <label for="acn-aircraft-type">Aircraft type</label>
+              <select id="acn-aircraft-type" name="aircraftType" class="select" required>
+                <option value="B787-9" selected>B787-9</option>
+                <option value="B737 NG">B737 NG</option>
+                <option value="B737 MAX">B737 MAX</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="acn-actual-weight">Actual weight</label>
+              <input
+                id="acn-actual-weight"
+                name="actualWeight"
+                class="input number-input"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="acn-weight-unit">Units</label>
+              <select id="acn-weight-unit" name="weightUnit" class="select" required>
+                <option value="KGS" selected>KGS</option>
+                <option value="T">T</option>
+              </select>
+            </div>
+          </section>
+
+          <p
+            id="acn-validation-message"
+            class="inline-message acn-full-row"
+            aria-live="polite"
+            hidden
+          ></p>
+
+          <div class="actions acn-full-row">
+            <button class="button" type="button" id="acn-clear-button">Clear</button>
+            <button class="button primary" type="submit" id="acn-evaluate-button">Evaluate</button>
+          </div>
+        </form>
+
+        <section class="screen acn-result-panel" id="acn-result-panel" hidden>
+          <section class="card result-section" id="acn-report-section">
+            <div class="section-header">
+              <h3 class="section-title">Report Details</h3>
+              <span id="acn-result-chip" class="section-chip">FAIL</span>
+            </div>
+            <div id="acn-details-list" class="kv-list"></div>
+            <div
+              id="acn-results-banner"
+              class="results-banner fail acn-result-summary"
+              aria-live="polite"
+            >
+              <p class="banner-label" id="acn-banner-label">RESULT</p>
+              <h2 class="banner-title" id="acn-banner-title">FAIL</h2>
+              <p class="banner-subtitle" id="acn-banner-subtitle">
+                ACN exceeds PCN. Normal operations are not suitable on this pavement.
+              </p>
+              <p class="banner-subtitle" id="acn-banner-guidance" hidden></p>
+            </div>
+            <p id="acn-overload-note" class="result-note fail" hidden></p>
+            <p id="acn-comparison-detail" class="muted-note acn-comparison-detail"></p>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js?v=9.5" defer></script>
+  </body>
+</html>
