@@ -1,4 +1,4 @@
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -90,7 +90,7 @@ const ACN_DEFAULTS = {
 };
 const BRAKE_AIRCRAFT_CONFIG = {
   "I-NEOU": {
-    group: "NG STEEL",
+    aircraftGroup: "NG",
     aircraftModel: "B737-800 NG",
     engineModel: "737-800W/CFM56-7B26",
     brakeType: "STEEL",
@@ -98,7 +98,7 @@ const BRAKE_AIRCRAFT_CONFIG = {
     sourceTable: "737-800W/CFM56-7B26 — Category C Steel Brakes",
   },
   "I-NEOZ": {
-    group: "NG STEEL",
+    aircraftGroup: "NG",
     aircraftModel: "B737-800 NG",
     engineModel: "737-800W/CFM56-7B26",
     brakeType: "STEEL",
@@ -106,7 +106,7 @@ const BRAKE_AIRCRAFT_CONFIG = {
     sourceTable: "737-800W/CFM56-7B26 — Category C Steel Brakes",
   },
   "EI-HIL": {
-    group: "NG CARBON",
+    aircraftGroup: "NG",
     aircraftModel: "B737-800 NG",
     engineModel: "737-800WSFP1/CFM56-7B26",
     brakeType: "CARBON",
@@ -114,7 +114,7 @@ const BRAKE_AIRCRAFT_CONFIG = {
     sourceTable: "737-800WSFP1/CFM56-7B26 — Category N Carbon Brakes",
   },
   "EI-HIM": {
-    group: "NG CARBON",
+    aircraftGroup: "NG",
     aircraftModel: "B737-800 NG",
     engineModel: "737-800WSFP1/CFM56-7B26",
     brakeType: "CARBON",
@@ -122,12 +122,12 @@ const BRAKE_AIRCRAFT_CONFIG = {
     sourceTable: "737-800WSFP1/CFM56-7B26 — Category N Carbon Brakes",
   },
   "EI-RZA": {
-    group: "MAX",
+    aircraftGroup: "MAX",
     aircraftModel: "B737-8 MAX",
     engineModel: "737-8/LEAP-1B27",
-    brakeType: "MAX",
+    brakeType: "CARBON",
     coolingTableKey: "MAX",
-    sourceTable: "737-8/LEAP-1B27 — MAX Cooling Time Table",
+    sourceTable: "737-8/LEAP-1B27 — Carbon Brakes — MAX Cooling Time Table",
   },
   "EI-RZB": null,
   "EI-RZC": null,
@@ -209,7 +209,7 @@ const FEET_PER_STATUTE_MILE = 5280;
 const NM_TO_STATUTE_MILE = 1.150779448;
 const KM_PER_STATUTE_MILE = 1.609344;
 // Manual checks: I-NEOU -> STEEL/Cat C/+1.0; EI-HIL -> CARBON/Cat N/+1.0;
-// EI-RZA -> MAX/+2.0 normally or +3.0 when OAT is below -25 C or above 30 C.
+// EI-RZA -> MAX family with CARBON brakes/+2.0 normally or +3.0 when OAT is below -25 C or above 30 C.
 const TRIP_INFO_B737_STORAGE_KEY = "737-ops-trip-info-b737-v1";
 const TRIP_INFO_LOGO_SRC = "./assets/tripinfo-logo-neos.png";
 const TRIP_INFO_EXPORT_WIDTH = 1500;
@@ -1299,19 +1299,19 @@ function readBrakeTaxiInput() {
 }
 
 function calculateBrakeCoolingResult(values) {
-  const aircraftFamily = values.config.group === "MAX" ? "MAX" : "NG";
+  const aircraftGroup = values.config.aircraftGroup;
   const inferredStartingEnergy = inferBrakeEnergyFromOfficialCoolingTime(
     values.coolingTable,
     values.officialGroundCoolingTime
   );
-  const taxiEnergyRate = getBrakeTaxiEnergyRate(aircraftFamily, values.oat);
+  const taxiEnergyRate = getBrakeTaxiEnergyRate(aircraftGroup, values.oat);
   const taxiEnergy = values.taxiMiles * taxiEnergyRate;
   const correctedEnergy = inferredStartingEnergy + taxiEnergy;
   const cooling = calculateBrakeCoolingSchedule(values.coolingTable, correctedEnergy);
 
   return {
     ...values,
-    aircraftFamily,
+    aircraftGroup,
     taxiEnergyRate,
     taxiEnergy,
     correctedEnergy,
@@ -4056,8 +4056,8 @@ function convertBrakeDistanceToStatuteMiles(distance, unit) {
   return distance * NM_TO_STATUTE_MILE;
 }
 
-function getBrakeTaxiEnergyRate(aircraftFamily, oat) {
-  if (aircraftFamily !== "MAX") {
+function getBrakeTaxiEnergyRate(aircraftGroup, oat) {
+  if (aircraftGroup !== "MAX") {
     return BRAKE_TAXI_ENERGY_RULES.NG.standard;
   }
 
