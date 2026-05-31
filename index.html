@@ -8,26 +8,28 @@
     >
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0b0b0f">
-    <meta name="app-version" content="1.0">
+    <meta name="theme-color" content="#101716">
+    <meta name="app-version" content="1.2">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.0">
+    <link rel="manifest" href="manifest.json?v=1.2">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0b0b0f;
-        --bg-soft: #12131a;
-        --card: rgba(22, 24, 31, 0.92);
-        --card-border: rgba(255, 255, 255, 0.08);
-        --text: #f5f7fb;
-        --muted: #9ca4b7;
-        --accent: #4f7cff;
-        --pass: #1fbe63;
-        --fail: #df3f4e;
-        --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
-        --radius: 22px;
+        --bg: #101716;
+        --bg-soft: #17201f;
+        --card: rgba(25, 34, 33, 0.94);
+        --card-border: rgba(122, 244, 232, 0.16);
+        --text: #f3f8f7;
+        --muted: #9caeab;
+        --accent: #39d8c8;
+        --accent-strong: #84fff1;
+        --accent-warm: #f6b74c;
+        --pass: #2ed47a;
+        --fail: #f05260;
+        --shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+        --radius: 18px;
         --mono: "SFMono-Regular", "Menlo", "Monaco", monospace;
         --safe-top: env(safe-area-inset-top, 0px);
         --safe-right: env(safe-area-inset-right, 0px);
@@ -44,8 +46,9 @@
         margin: 0;
         min-height: 100%;
         background:
-          radial-gradient(circle at top, rgba(79, 124, 255, 0.12), transparent 34%),
-          linear-gradient(180deg, #12141c 0%, var(--bg) 52%);
+          radial-gradient(circle at 82% 4%, rgba(57, 216, 200, 0.18), transparent 34%),
+          radial-gradient(circle at 18% 0%, rgba(246, 183, 76, 0.10), transparent 30%),
+          linear-gradient(180deg, #18211f 0%, var(--bg) 58%, #0c1111 100%);
         color: var(--text);
         font-family:
           -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
@@ -92,7 +95,7 @@
       }
 
       .hero {
-        padding: 6px 2px 4px;
+        padding: 8px 2px 6px;
       }
 
       .fuel-header h1 {
@@ -104,10 +107,10 @@
       .eyebrow {
         display: inline-block;
         margin-bottom: 8px;
-        color: var(--muted);
+        color: var(--accent-strong);
         font-size: 0.78rem;
         font-weight: 600;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
       }
 
@@ -124,7 +127,9 @@
       }
 
       .card {
-        background: var(--card);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+          var(--card);
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
         box-shadow: var(--shadow);
@@ -168,10 +173,10 @@
       .select {
         width: 100%;
         min-height: 52px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
+        border: 1px solid rgba(171, 226, 219, 0.15);
+        border-radius: 14px;
         padding: 14px 16px;
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.035);
         color: var(--text);
         font-size: 1rem;
         outline: none;
@@ -180,8 +185,8 @@
 
       .input:focus,
       .select:focus {
-        border-color: rgba(79, 124, 255, 0.88);
-        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(57, 216, 200, 0.88);
+        background: rgba(57, 216, 200, 0.07);
       }
 
       .number-input {
@@ -230,9 +235,9 @@
         min-height: 48px;
         display: grid;
         place-items: center;
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
+        border-radius: 14px;
+        border: 1px solid rgba(171, 226, 219, 0.14);
+        background: rgba(255, 255, 255, 0.035);
         color: var(--muted);
         font-weight: 600;
         transition:
@@ -243,8 +248,8 @@
       }
 
       .segmented input:checked + .segment {
-        background: rgba(79, 124, 255, 0.18);
-        border-color: rgba(79, 124, 255, 0.74);
+        background: rgba(57, 216, 200, 0.15);
+        border-color: rgba(57, 216, 200, 0.74);
         color: var(--text);
         transform: translateY(-1px);
       }
@@ -269,17 +274,20 @@
       .button {
         min-height: 52px;
         border: none;
-        border-radius: 18px;
+        border-radius: 16px;
         padding: 14px 18px;
         font-size: 0.98rem;
         font-weight: 700;
         letter-spacing: 0.01em;
         color: var(--text);
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.075);
+        border: 1px solid rgba(171, 226, 219, 0.12);
       }
 
       .button.primary {
-        background: linear-gradient(135deg, #5c86ff 0%, #3c68f7 100%);
+        color: #061615;
+        background: linear-gradient(135deg, #84fff1 0%, #28c4b4 100%);
+        box-shadow: 0 10px 24px rgba(57, 216, 200, 0.20);
       }
 
       .button:active {
@@ -317,8 +325,12 @@
         font-family: var(--mono);
         font-size: 0.68rem;
         letter-spacing: 0.08em;
-        opacity: 0.58;
+        opacity: 0.78;
         white-space: nowrap;
+        padding: 4px 8px;
+        border: 1px solid rgba(57, 216, 200, 0.18);
+        border-radius: 999px;
+        background: rgba(57, 216, 200, 0.06);
       }
 
       .home-menu {
@@ -327,22 +339,23 @@
       }
 
       .home-logo-wrap {
-        position: absolute;
-        top: 2px;
-        right: 0;
+        position: relative;
         display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 5px;
-        justify-content: flex-end;
-        padding-top: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 16px 0 20px;
+        padding: 10px 12px;
+        border: 1px solid rgba(171, 226, 219, 0.12);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
         pointer-events: none;
       }
 
       .home-logo {
-        width: min(31.5vw, 108px);
-        max-width: 108px;
-        max-height: 108px;
+        width: min(27vw, 96px);
+        max-width: 96px;
+        max-height: 56px;
         display: block;
         height: auto;
         object-fit: contain;
@@ -353,20 +366,26 @@
       }
 
       .home-version {
-        color: var(--muted);
+        color: var(--accent-strong);
         font-family: var(--mono);
-        font-size: 0.7rem;
-        letter-spacing: 0.06em;
-        opacity: 0.42;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        opacity: 0.88;
+        padding: 4px 9px;
+        border: 1px solid rgba(57, 216, 200, 0.18);
+        border-radius: 999px;
+        background: rgba(57, 216, 200, 0.06);
       }
 
       .menu-button {
         width: 100%;
-        min-height: 104px;
+        min-height: 94px;
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
-        padding: 18px;
-        background: var(--card);
+        padding: 17px 18px;
+        background:
+          linear-gradient(135deg, rgba(57, 216, 200, 0.075), transparent 46%),
+          var(--card);
         box-shadow: var(--shadow);
         color: var(--text);
         text-align: left;
@@ -376,8 +395,12 @@
       }
 
       .menu-button:focus-visible {
-        outline: 2px solid rgba(79, 124, 255, 0.88);
+        outline: 2px solid rgba(57, 216, 200, 0.88);
         outline-offset: 2px;
+      }
+
+      .menu-button:active {
+        transform: translateY(1px);
       }
 
       .menu-button-title {
@@ -396,7 +419,7 @@
         padding: 14px 16px;
         border-radius: 16px;
         border: 1px solid rgba(223, 63, 78, 0.34);
-        background: rgba(223, 63, 78, 0.12);
+        background: rgba(240, 82, 96, 0.12);
         color: #ffb4bc;
         line-height: 1.6;
       }
@@ -525,7 +548,7 @@
 
       .kv-value.fuel-converted-value {
         color: #d9ffe6;
-        font-size: 1.06em;
+        font-size: 1.26em;
         font-weight: 800;
       }
 
@@ -916,6 +939,10 @@
         </header>
 
         <section class="home-menu" aria-label="Module menu">
+          <button class="menu-button" type="button" id="openTripInfoBtn">
+            <span class="menu-button-title">TRIP INFO B737</span>
+            <span class="menu-button-note">Operational trip sheet generator</span>
+          </button>
           <button class="menu-button" type="button" id="openFuelBtn">
             <span class="menu-button-title">Fuel Check</span>
             <span class="menu-button-note">Tolerance check for remaining fuel</span>
@@ -924,14 +951,11 @@
             <span class="menu-button-title">ACN-PCN</span>
             <span class="menu-button-note">Pavement compatibility module</span>
           </button>
-          <button class="menu-button" type="button" id="openTripInfoBtn">
-            <span class="menu-button-title">TRIP INFO B737</span>
-          </button>
         </section>
 
         <div class="home-logo-wrap">
           <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-          <span class="home-version">1.0</span>
+          <span class="home-version">1.2</span>
         </div>
       </section>
 
@@ -944,7 +968,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.0</span>
+              <span class="module-version-badge">1.2</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1077,7 +1101,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.0</span>
+            <span class="module-version-badge">1.2</span>
           </div>
         </header>
 
@@ -1590,7 +1614,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.0</span>
+            <span class="module-version-badge">1.2</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1735,6 +1759,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.0" defer></script>
+    <script src="app.js?v=1.2" defer></script>
   </body>
 </html>

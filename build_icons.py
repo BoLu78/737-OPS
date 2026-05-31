@@ -4,10 +4,13 @@ import struct
 import zlib
 
 
-BG = (11, 11, 15, 255)
-BLUE = (39, 92, 182, 255)
-WHITE = (245, 248, 255, 255)
-MUTED = (159, 181, 224, 255)
+BG_TOP = (24, 33, 31, 255)
+BG_BOTTOM = (8, 13, 13, 255)
+TEAL = (57, 216, 200, 255)
+TEAL_DARK = (22, 120, 113, 255)
+AMBER = (246, 183, 76, 255)
+WHITE = (244, 250, 249, 255)
+MUTED = (148, 178, 173, 255)
 
 DIGITS = {
     "7": ("111", "001", "001", "010", "010", "100", "100"),
@@ -31,6 +34,26 @@ def rect(buf, size, x, y, w, h, color):
         row = buf[yy]
         for xx in range(max(0, x), min(size, x + w)):
             row[xx] = color
+
+
+def blend(a, b, t):
+    return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(4))
+
+
+def polygon(buf, size, points, color):
+    min_y = max(0, min(y for _, y in points))
+    max_y = min(size - 1, max(y for _, y in points))
+    for y in range(min_y, max_y + 1):
+        intersections = []
+        for i, (x1, y1) in enumerate(points):
+            x2, y2 = points[(i + 1) % len(points)]
+            if y1 == y2:
+                continue
+            if (y >= min(y1, y2)) and (y < max(y1, y2)):
+                intersections.append(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
+        intersections.sort()
+        for start, end in zip(intersections[0::2], intersections[1::2]):
+            rect(buf, size, round(start), y, max(1, round(end - start)), 1, color)
 
 
 def line(buf, size, x0, y0, x1, y1, color, thickness=1):
@@ -67,18 +90,36 @@ def draw_bitmap_text(buf, size, text, x, y, scale, color, alphabet):
         cursor += (len(glyph[0]) + 1) * scale
 
 
-def draw_plane(buf, size):
-    y = int(size * 0.80)
-    x0 = int(size * 0.19)
-    x1 = int(size * 0.81)
-    t = max(3, size // 42)
-    line(buf, size, x0, y, x1, y, WHITE, t)
-    line(buf, size, x1, y, x1 - int(size * 0.08), y - int(size * 0.035), WHITE, t)
-    line(buf, size, x1, y, x1 - int(size * 0.08), y + int(size * 0.035), WHITE, t)
-    line(buf, size, int(size * 0.45), y, int(size * 0.32), y + int(size * 0.10), WHITE, t)
-    line(buf, size, int(size * 0.53), y, int(size * 0.42), y - int(size * 0.085), WHITE, t)
-    line(buf, size, x0 + int(size * 0.03), y, x0 - int(size * 0.02), y - int(size * 0.06), WHITE, t)
-    line(buf, size, x0 + int(size * 0.04), y, x0 - int(size * 0.02), y + int(size * 0.045), WHITE, t)
+def draw_heading_mark(buf, size):
+    cx = size // 2
+    top = int(size * 0.70)
+    tip = int(size * 0.85)
+    span = int(size * 0.19)
+    inner = int(size * 0.055)
+    polygon(
+        buf,
+        size,
+        [
+            (cx, top),
+            (cx + span, tip),
+            (cx + inner, tip - int(size * 0.018)),
+            (cx, tip - int(size * 0.075)),
+            (cx - inner, tip - int(size * 0.018)),
+            (cx - span, tip),
+        ],
+        TEAL,
+    )
+    polygon(
+        buf,
+        size,
+        [
+            (cx, top + int(size * 0.045)),
+            (cx + int(size * 0.075), tip - int(size * 0.025)),
+            (cx, tip - int(size * 0.058)),
+            (cx - int(size * 0.075), tip - int(size * 0.025)),
+        ],
+        BG_BOTTOM,
+    )
 
 
 def png_chunk(tag, data):
@@ -102,21 +143,36 @@ def write_png(path, pixels):
 
 
 def build_icon(size):
-    pixels = [[BG for _ in range(size)] for _ in range(size)]
-    border = max(5, size // 24)
-    rect(pixels, size, 0, 0, size, border, BLUE)
-    rect(pixels, size, 0, size - border, size, border, BLUE)
-    rect(pixels, size, 0, 0, border, size, BLUE)
-    rect(pixels, size, size - border, 0, border, size, BLUE)
+    pixels = []
+    for y in range(size):
+        pixels.append([blend(BG_TOP, BG_BOTTOM, y / max(1, size - 1)) for _ in range(size)])
 
-    digit_scale = max(10, size // 15)
+    border = max(4, size // 34)
+    inset = max(10, size // 18)
+    rect(pixels, size, inset, inset, size - inset * 2, border, TEAL_DARK)
+    rect(pixels, size, inset, size - inset - border, size - inset * 2, border, TEAL_DARK)
+    rect(pixels, size, inset, inset, border, size - inset * 2, TEAL_DARK)
+    rect(pixels, size, size - inset - border, inset, border, size - inset * 2, TEAL_DARK)
+    rect(pixels, size, inset + border, inset + border, size - (inset + border) * 2, max(2, border // 2), TEAL)
+
+    digit_scale = max(10, size // 14)
     digit_width = (3 * digit_scale * 3) + (digit_scale * 2)
-    draw_bitmap_text(pixels, size, "737", (size - digit_width) // 2, int(size * 0.18), digit_scale, WHITE, DIGITS)
+    draw_bitmap_text(
+        pixels,
+        size,
+        "737",
+        (size - digit_width) // 2,
+        int(size * 0.17),
+        digit_scale,
+        WHITE,
+        DIGITS,
+    )
 
-    ops_scale = max(4, size // 37)
+    ops_scale = max(4, size // 34)
     ops_width = (3 * ops_scale * 3) + (ops_scale * 2)
-    draw_bitmap_text(pixels, size, "OPS", (size - ops_width) // 2, int(size * 0.55), ops_scale, MUTED, LETTERS)
-    draw_plane(pixels, size)
+    draw_bitmap_text(pixels, size, "OPS", (size - ops_width) // 2, int(size * 0.52), ops_scale, MUTED, LETTERS)
+    draw_heading_mark(pixels, size)
+    rect(pixels, size, int(size * 0.30), int(size * 0.88), int(size * 0.40), max(2, size // 80), AMBER)
     return pixels
 
 
