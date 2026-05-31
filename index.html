@@ -8,28 +8,28 @@
     >
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#101716">
-    <meta name="app-version" content="1.2">
+    <meta name="theme-color" content="#f3efe4">
+    <meta name="app-version" content="1.3">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.2">
+    <link rel="manifest" href="manifest.json?v=1.3">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
       :root {
-        color-scheme: dark;
-        --bg: #101716;
-        --bg-soft: #17201f;
-        --card: rgba(25, 34, 33, 0.94);
-        --card-border: rgba(122, 244, 232, 0.16);
-        --text: #f3f8f7;
-        --muted: #9caeab;
-        --accent: #39d8c8;
-        --accent-strong: #84fff1;
-        --accent-warm: #f6b74c;
-        --pass: #2ed47a;
-        --fail: #f05260;
-        --shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
-        --radius: 18px;
+        color-scheme: light;
+        --bg: #f3efe4;
+        --bg-soft: #ebe4d6;
+        --card: #fffaf0;
+        --card-border: rgba(20, 31, 46, 0.14);
+        --text: #101827;
+        --muted: #667085;
+        --accent: #f59e0b;
+        --accent-strong: #d97706;
+        --accent-blue: #163b57;
+        --pass: #16803c;
+        --fail: #c2414b;
+        --shadow: 0 10px 28px rgba(16, 24, 39, 0.10);
+        --radius: 14px;
         --mono: "SFMono-Regular", "Menlo", "Monaco", monospace;
         --safe-top: env(safe-area-inset-top, 0px);
         --safe-right: env(safe-area-inset-right, 0px);
@@ -46,9 +46,9 @@
         margin: 0;
         min-height: 100%;
         background:
-          radial-gradient(circle at 82% 4%, rgba(57, 216, 200, 0.18), transparent 34%),
-          radial-gradient(circle at 18% 0%, rgba(246, 183, 76, 0.10), transparent 30%),
-          linear-gradient(180deg, #18211f 0%, var(--bg) 58%, #0c1111 100%);
+          linear-gradient(135deg, rgba(22, 59, 87, 0.08) 0 1px, transparent 1px 44px),
+          radial-gradient(circle at 82% 0%, rgba(245, 158, 11, 0.16), transparent 30%),
+          linear-gradient(180deg, #fbf7ed 0%, var(--bg) 52%, var(--bg-soft) 100%);
         color: var(--text);
         font-family:
           -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
@@ -107,7 +107,7 @@
       .eyebrow {
         display: inline-block;
         margin-bottom: 8px;
-        color: var(--accent-strong);
+        color: var(--accent-blue);
         font-size: 0.78rem;
         font-weight: 600;
         letter-spacing: 0.14em;
@@ -127,14 +127,11 @@
       }
 
       .card {
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
-          var(--card);
+        background: var(--card);
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         padding: 18px;
-        backdrop-filter: blur(18px);
       }
 
       .card h2 {
@@ -173,10 +170,10 @@
       .select {
         width: 100%;
         min-height: 52px;
-        border: 1px solid rgba(171, 226, 219, 0.15);
+        border: 1px solid rgba(20, 31, 46, 0.16);
         border-radius: 14px;
         padding: 14px 16px;
-        background: rgba(255, 255, 255, 0.035);
+        background: #fffef9;
         color: var(--text);
         font-size: 1rem;
         outline: none;
@@ -185,8 +182,9 @@
 
       .input:focus,
       .select:focus {
-        border-color: rgba(57, 216, 200, 0.88);
-        background: rgba(57, 216, 200, 0.07);
+        border-color: rgba(245, 158, 11, 0.85);
+        background: #fffaf0;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.13);
       }
 
       .number-input {
@@ -236,8 +234,8 @@
         display: grid;
         place-items: center;
         border-radius: 14px;
-        border: 1px solid rgba(171, 226, 219, 0.14);
-        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(20, 31, 46, 0.14);
+        background: #fffef9;
         color: var(--muted);
         font-weight: 600;
         transition:
@@ -248,8 +246,8 @@
       }
 
       .segmented input:checked + .segment {
-        background: rgba(57, 216, 200, 0.15);
-        border-color: rgba(57, 216, 200, 0.74);
+        background: rgba(245, 158, 11, 0.16);
+        border-color: rgba(245, 158, 11, 0.72);
         color: var(--text);
         transform: translateY(-1px);
       }
@@ -279,15 +277,17 @@
         font-size: 0.98rem;
         font-weight: 700;
         letter-spacing: 0.01em;
-        color: var(--text);
-        background: rgba(255, 255, 255, 0.075);
-        border: 1px solid rgba(171, 226, 219, 0.12);
+        color: var(--accent-blue);
+        background: #fffaf0;
+        border: 1px solid rgba(20, 31, 46, 0.16);
+        box-shadow: 0 6px 16px rgba(16, 24, 39, 0.08);
       }
 
       .button.primary {
-        color: #061615;
-        background: linear-gradient(135deg, #84fff1 0%, #28c4b4 100%);
-        box-shadow: 0 10px 24px rgba(57, 216, 200, 0.20);
+        color: #fffaf0;
+        background: linear-gradient(135deg, var(--accent-blue) 0%, #225778 100%);
+        border-color: transparent;
+        box-shadow: 0 10px 22px rgba(22, 59, 87, 0.20);
       }
 
       .button:active {
@@ -328,9 +328,9 @@
         opacity: 0.78;
         white-space: nowrap;
         padding: 4px 8px;
-        border: 1px solid rgba(57, 216, 200, 0.18);
+        border: 1px solid rgba(20, 31, 46, 0.14);
         border-radius: 999px;
-        background: rgba(57, 216, 200, 0.06);
+        background: rgba(255, 250, 240, 0.74);
       }
 
       .home-menu {
@@ -344,18 +344,16 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin: 16px 0 20px;
-        padding: 10px 12px;
-        border: 1px solid rgba(171, 226, 219, 0.12);
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.03);
+        margin: 18px 0 22px;
+        padding: 0 2px;
+        color: var(--muted);
         pointer-events: none;
       }
 
       .home-logo {
         width: min(27vw, 96px);
         max-width: 96px;
-        max-height: 56px;
+        max-height: 34px;
         display: block;
         height: auto;
         object-fit: contain;
@@ -365,27 +363,32 @@
         image-rendering: crisp-edges;
       }
 
+      .home-brand {
+        flex: 1;
+        color: var(--accent-blue);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
       .home-version {
-        color: var(--accent-strong);
+        color: var(--muted);
         font-family: var(--mono);
         font-size: 0.72rem;
         letter-spacing: 0.08em;
-        opacity: 0.88;
-        padding: 4px 9px;
-        border: 1px solid rgba(57, 216, 200, 0.18);
-        border-radius: 999px;
-        background: rgba(57, 216, 200, 0.06);
+        opacity: 0.92;
       }
 
       .menu-button {
+        position: relative;
+        overflow: hidden;
         width: 100%;
         min-height: 94px;
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
-        padding: 17px 18px;
-        background:
-          linear-gradient(135deg, rgba(57, 216, 200, 0.075), transparent 46%),
-          var(--card);
+        padding: 18px 52px 18px 22px;
+        background: var(--card);
         box-shadow: var(--shadow);
         color: var(--text);
         text-align: left;
@@ -394,8 +397,28 @@
         align-content: center;
       }
 
+      .menu-button::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: var(--accent);
+      }
+
+      .menu-button::after {
+        content: attr(data-code);
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        color: rgba(22, 59, 87, 0.52);
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
       .menu-button:focus-visible {
-        outline: 2px solid rgba(57, 216, 200, 0.88);
+        outline: 2px solid rgba(245, 158, 11, 0.80);
         outline-offset: 2px;
       }
 
@@ -418,9 +441,9 @@
         margin: 0;
         padding: 14px 16px;
         border-radius: 16px;
-        border: 1px solid rgba(223, 63, 78, 0.34);
-        background: rgba(240, 82, 96, 0.12);
-        color: #ffb4bc;
+        border: 1px solid rgba(194, 65, 75, 0.32);
+        background: rgba(194, 65, 75, 0.10);
+        color: #9f2532;
         line-height: 1.6;
       }
 
@@ -432,15 +455,18 @@
       }
 
       .results-banner.pass {
-        background: linear-gradient(135deg, rgba(31, 190, 99, 0.9), rgba(23, 126, 75, 0.95));
+        color: #fffaf0;
+        background: linear-gradient(135deg, #16803c, #0f5f2b);
       }
 
       .results-banner.fail {
-        background: linear-gradient(135deg, rgba(223, 63, 78, 0.92), rgba(151, 33, 55, 0.94));
+        color: #fffaf0;
+        background: linear-gradient(135deg, #c2414b, #8e2630);
       }
 
       .results-banner.warn {
-        background: linear-gradient(135deg, rgba(224, 161, 53, 0.9), rgba(158, 105, 21, 0.94));
+        color: #101827;
+        background: linear-gradient(135deg, #fbbf24, #d97706);
       }
 
       .banner-label {
@@ -469,8 +495,8 @@
       }
 
       .result-section.fail {
-        border-color: rgba(223, 63, 78, 0.5);
-        box-shadow: 0 14px 32px rgba(130, 24, 43, 0.24);
+        border-color: rgba(194, 65, 75, 0.42);
+        box-shadow: 0 12px 26px rgba(130, 24, 43, 0.14);
       }
 
       .section-header {
@@ -492,24 +518,24 @@
       .section-chip {
         border-radius: 999px;
         padding: 6px 10px;
-        background: rgba(255, 255, 255, 0.06);
+        background: rgba(20, 31, 46, 0.06);
         font-size: 0.76rem;
         font-weight: 700;
       }
 
       .section-chip.pass {
-        background: rgba(31, 190, 99, 0.18);
-        color: #baf0cf;
+        background: rgba(22, 128, 60, 0.12);
+        color: var(--pass);
       }
 
       .section-chip.fail {
-        background: rgba(223, 63, 78, 0.18);
-        color: #ffb4bc;
+        background: rgba(194, 65, 75, 0.12);
+        color: var(--fail);
       }
 
       .section-chip.warn {
-        background: rgba(224, 161, 53, 0.18);
-        color: #ffe2aa;
+        background: rgba(245, 158, 11, 0.14);
+        color: var(--accent-strong);
       }
 
       .result-card-title {
@@ -543,18 +569,18 @@
 
       .kv-row.fuel-converted-row .kv-key,
       .kv-row.fuel-converted-row .kv-value {
-        color: #baf0cf;
+        color: var(--pass);
       }
 
       .kv-value.fuel-converted-value {
-        color: #d9ffe6;
+        color: var(--pass);
         font-size: 1.26em;
         font-weight: 800;
       }
 
       .kv-row.fail .kv-key,
       .kv-row.fail .kv-value {
-        color: #ff9ea9;
+        color: var(--fail);
       }
 
       #acn-report-section .kv-row.max-allowable-row {
@@ -569,33 +595,33 @@
       }
 
       #acn-report-section .kv-row.max-allowable-pass {
-        background: rgba(31, 190, 99, 0.12);
-        border-color: rgba(31, 190, 99, 0.34);
+        background: rgba(22, 128, 60, 0.10);
+        border-color: rgba(22, 128, 60, 0.30);
       }
 
       #acn-report-section .kv-row.max-allowable-pass .kv-key,
       #acn-report-section .kv-row.max-allowable-pass .kv-value {
-        color: #baf0cf;
+        color: var(--pass);
       }
 
       #acn-report-section .kv-row.max-allowable-warn {
-        background: rgba(224, 161, 53, 0.12);
-        border-color: rgba(224, 161, 53, 0.34);
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.34);
       }
 
       #acn-report-section .kv-row.max-allowable-warn .kv-key,
       #acn-report-section .kv-row.max-allowable-warn .kv-value {
-        color: #ffe2aa;
+        color: var(--accent-strong);
       }
 
       #acn-report-section .kv-row.max-allowable-fail {
-        background: rgba(223, 63, 78, 0.12);
-        border-color: rgba(223, 63, 78, 0.34);
+        background: rgba(194, 65, 75, 0.10);
+        border-color: rgba(194, 65, 75, 0.30);
       }
 
       #acn-report-section .kv-row.max-allowable-fail .kv-key,
       #acn-report-section .kv-row.max-allowable-fail .kv-value {
-        color: #ffb4bc;
+        color: var(--fail);
       }
 
       .muted-note {
@@ -609,18 +635,18 @@
       }
 
       .result-note.fail {
-        color: #ffb4bc;
+        color: var(--fail);
       }
 
       .result-note.warn {
-        color: #ffe2aa;
+        color: var(--accent-strong);
       }
 
       .advanced-details {
         display: grid;
         gap: 10px;
         padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(20, 31, 46, 0.12);
       }
 
       .advanced-details-title {
@@ -730,7 +756,7 @@
       }
 
       .tripInfoDateInput {
-        color-scheme: dark;
+        color-scheme: light;
       }
 
       .tripInfoDateField {
@@ -745,13 +771,12 @@
       }
 
       .tripInfoDateInput::-webkit-calendar-picker-indicator {
-        filter: invert(1);
-        opacity: 0.86;
+        opacity: 0.72;
       }
 
       .tripInfoReadonlyInput {
-        color: rgba(245, 247, 251, 0.86);
-        background: rgba(255, 255, 255, 0.03);
+        color: rgba(16, 24, 39, 0.78);
+        background: rgba(20, 31, 46, 0.04);
       }
 
       .tripInfoTopSideRow .field[aria-hidden="true"] {
@@ -763,10 +788,10 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
+        border: 1px solid rgba(20, 31, 46, 0.14);
+        border-radius: 14px;
         padding: 14px 16px;
-        background: rgba(255, 255, 255, 0.04);
+        background: #fffef9;
         color: var(--text);
         font-weight: 600;
       }
@@ -939,15 +964,15 @@
         </header>
 
         <section class="home-menu" aria-label="Module menu">
-          <button class="menu-button" type="button" id="openTripInfoBtn">
+          <button class="menu-button" type="button" id="openTripInfoBtn" data-code="BRF">
             <span class="menu-button-title">TRIP INFO B737</span>
             <span class="menu-button-note">Operational trip sheet generator</span>
           </button>
-          <button class="menu-button" type="button" id="openFuelBtn">
+          <button class="menu-button" type="button" id="openFuelBtn" data-code="FUEL">
             <span class="menu-button-title">Fuel Check</span>
             <span class="menu-button-note">Tolerance check for remaining fuel</span>
           </button>
-          <button class="menu-button" type="button" id="openAcnBtn">
+          <button class="menu-button" type="button" id="openAcnBtn" data-code="RWY">
             <span class="menu-button-title">ACN-PCN</span>
             <span class="menu-button-note">Pavement compatibility module</span>
           </button>
@@ -955,7 +980,8 @@
 
         <div class="home-logo-wrap">
           <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-          <span class="home-version">1.2</span>
+          <span class="home-brand">737 OPS</span>
+          <span class="home-version">v1.3</span>
         </div>
       </section>
 
@@ -968,7 +994,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.2</span>
+              <span class="module-version-badge">1.3</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1101,7 +1127,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.2</span>
+            <span class="module-version-badge">1.3</span>
           </div>
         </header>
 
@@ -1614,7 +1640,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.2</span>
+            <span class="module-version-badge">1.3</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1759,6 +1785,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.2" defer></script>
+    <script src="app.js?v=1.3" defer></script>
   </body>
 </html>
