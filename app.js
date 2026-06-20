@@ -1,4 +1,4 @@
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -1377,7 +1377,7 @@ function renderVdpDiagram(result) {
 
   vdpDiagram.innerHTML = `
     <svg viewBox="0 0 320 210" role="img" aria-label="VDP side profile diagram">
-      <text x="8" y="16" class="vdp-diagram-muted">ALT</text>
+      <text x="8" y="16" class="vdp-diagram-muted">Height</text>
       <text x="8" y="48" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
       <line x1="${vdpX}" y1="${vdpPathY}" x2="${vdpX}" y2="${groundY}" class="vdp-diagram-guide"></line>
       <line x1="28" y1="${groundY}" x2="${thrX}" y2="${groundY}" class="vdp-diagram-reference"></line>
