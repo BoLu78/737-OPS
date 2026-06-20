@@ -1,4 +1,4 @@
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -817,8 +817,8 @@ function attachEventListeners() {
     evaluateVdpModule();
   });
 
-  vdpForm.addEventListener("input", clearVdpValidation);
-  vdpForm.addEventListener("change", clearVdpValidation);
+  vdpForm.addEventListener("input", handleVdpFormChange);
+  vdpForm.addEventListener("change", handleVdpFormChange);
 
   vdpClearButton.addEventListener("click", () => {
     resetVdpModule(true);
@@ -1187,7 +1187,7 @@ function resetVdpModule(shouldFocus) {
 function evaluateVdpModule() {
   clearVdpValidation();
 
-  const values = readVdpInputValues();
+  const values = readVdpInputValues(false);
   if (!values) {
     hideVdpResult();
     return;
@@ -1196,23 +1196,45 @@ function evaluateVdpModule() {
   renderVdpResult(calculateVdpResult(values));
 }
 
-function readVdpInputValues() {
+function handleVdpFormChange() {
+  clearVdpValidation();
+
+  if (vdpResultSection.hidden) {
+    return;
+  }
+
+  const values = readVdpInputValues(true);
+  if (!values) {
+    hideVdpResult();
+    return;
+  }
+
+  renderVdpResult(calculateVdpResult(values));
+}
+
+function readVdpInputValues(silent) {
   const procedurePathAngle = parsePositiveNumber(vdpForm.elements.procedurePathAngle.value);
   const mdhFt = parsePositiveNumber(vdpForm.elements.mdhFt.value);
   const papiAngle = parsePositiveNumber(vdpForm.elements.papiAngle.value);
 
   if (procedurePathAngle === null) {
-    showVdpValidation("Enter a valid procedure descent path greater than 0.");
+    if (!silent) {
+      showVdpValidation("Enter a valid procedure descent path greater than 0.");
+    }
     return null;
   }
 
   if (mdhFt === null) {
-    showVdpValidation("Enter a valid MDH / height greater than 0.");
+    if (!silent) {
+      showVdpValidation("Enter a valid MDH / height greater than 0.");
+    }
     return null;
   }
 
   if (papiAngle === null) {
-    showVdpValidation("Enter a valid PAPI angle greater than 0.");
+    if (!silent) {
+      showVdpValidation("Enter a valid PAPI angle greater than 0.");
+    }
     return null;
   }
 
@@ -1281,25 +1303,46 @@ function formatVdpVisibility(valueMeters) {
 function renderVdpDiagram(result) {
   const vdpNmDisplay = formatVdpNm(result.procedureVdpNm);
   const visibilityDisplay = formatVdpVisibility(result.procedureVisibilityMeters);
-  const angleDisplay = `${formatVdpAngle(result.procedurePathAngle)}°`;
+  const procedureAngleDisplay = `PROC ${formatVdpAngle(result.procedurePathAngle)}°`;
+  const papiAngleDisplay = `PAPI ${formatVdpAngle(result.papiAngle)}°`;
   const mdhDisplay = `${formatNumber(result.mdhFt, 0)} ft`;
+  const groundY = 120;
+  const vdpX = 126;
+  const thrX = 268;
+  const runwayEndX = 302;
+  const diagramScale = 8.5;
+  const visualDrop = Math.max(
+    34,
+    Math.min(74, Math.tan((result.papiAngle * Math.PI) / 180) * (thrX - vdpX) * diagramScale)
+  );
+  const procRun = 74;
+  const procDrop = Math.max(
+    24,
+    Math.min(58, Math.tan((result.procedurePathAngle * Math.PI) / 180) * procRun * diagramScale)
+  );
+  const vdpPathY = groundY - visualDrop;
+  const aircraftX = vdpX - procRun;
+  const aircraftY = Math.max(16, vdpPathY - procDrop);
 
   vdpDiagram.innerHTML = `
     <svg viewBox="0 0 320 170" role="img" aria-label="VDP side profile diagram">
       <text x="14" y="20" class="vdp-diagram-muted">ALT</text>
       <text x="14" y="44" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
-      <line x1="84" y1="52" x2="84" y2="112" class="vdp-diagram-guide"></line>
-      <line x1="36" y1="112" x2="296" y2="112" class="vdp-diagram-runway"></line>
-      <line x1="84" y1="52" x2="198" y2="112" class="vdp-diagram-path"></line>
-      <circle cx="84" cy="52" r="6" class="vdp-diagram-aircraft"></circle>
-      <circle cx="84" cy="112" r="6" class="vdp-diagram-point"></circle>
-      <circle cx="198" cy="112" r="6" class="vdp-diagram-point"></circle>
-      <text x="218" y="105" class="vdp-diagram-muted">RWY</text>
-      <text x="72" y="132">VDP</text>
-      <text x="188" y="132">THR</text>
-      <text x="150" y="78" class="vdp-diagram-mono">${angleDisplay}</text>
-      <text x="74" y="150" class="vdp-diagram-mono">${vdpNmDisplay}</text>
-      <text x="74" y="164" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
+      <line x1="${vdpX}" y1="${vdpPathY}" x2="${vdpX}" y2="${groundY}" class="vdp-diagram-guide"></line>
+      <line x1="34" y1="${groundY}" x2="${runwayEndX}" y2="${groundY}" class="vdp-diagram-runway"></line>
+      <line x1="${aircraftX}" y1="${aircraftY}" x2="${vdpX}" y2="${vdpPathY}" class="vdp-diagram-path"></line>
+      <line x1="${vdpX}" y1="${vdpPathY}" x2="${thrX}" y2="${groundY}" class="vdp-diagram-visual-path"></line>
+      <circle cx="${aircraftX}" cy="${aircraftY}" r="6" class="vdp-diagram-aircraft"></circle>
+      <circle cx="${vdpX}" cy="${vdpPathY}" r="5" class="vdp-diagram-point"></circle>
+      <circle cx="${vdpX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
+      <circle cx="${thrX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
+      <text x="282" y="${groundY - 8}" class="vdp-diagram-muted">RWY</text>
+      <text x="${vdpX - 13}" y="139">VDP</text>
+      <text x="${thrX - 12}" y="139">THR</text>
+      <text x="${aircraftX + 12}" y="${Math.max(18, aircraftY + 24)}" class="vdp-diagram-mono">${procedureAngleDisplay}</text>
+      <text x="${vdpX + 32}" y="${vdpPathY + 19}" class="vdp-diagram-mono">${papiAngleDisplay}</text>
+      <text x="${vdpX - 22}" y="154" class="vdp-diagram-mono">${vdpNmDisplay}</text>
+      <text x="${vdpX - 22}" y="166" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
     </svg>
   `;
 }
