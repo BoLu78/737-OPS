@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="1.9">
+    <meta name="app-version" content="2.0">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=1.9">
+    <link rel="manifest" href="manifest.json?v=2.0">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -980,7 +980,7 @@
         <header class="hero">
           <div class="home-logo-wrap">
             <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-            <span class="home-version">v1.9</span>
+            <span class="home-version">v2.0</span>
           </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
@@ -1004,6 +1004,10 @@
             <span class="menu-button-title">ACN-PCN</span>
             <span class="menu-button-note">Pavement compatibility module</span>
           </button>
+          <button class="menu-button" type="button" id="openVdpBtn" data-code="VDP">
+            <span class="menu-button-title">VDP / VISIBILITY</span>
+            <span class="menu-button-note">Non-precision approach advisory check</span>
+          </button>
         </section>
       </section>
 
@@ -1015,7 +1019,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">1.9</span>
+            <span class="module-version-badge">2.0</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1118,7 +1122,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">1.9</span>
+              <span class="module-version-badge">2.0</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1251,7 +1255,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">1.9</span>
+            <span class="module-version-badge">2.0</span>
           </div>
         </header>
 
@@ -1756,6 +1760,84 @@
         </section>
       </section>
 
+      <section class="screen app-view" id="vdpView" hidden aria-hidden="true">
+        <div class="module-nav">
+          <button class="button module-back" type="button" id="backFromVdpBtn">Back</button>
+        </div>
+
+        <header class="hero">
+          <div class="module-header-row">
+            <h1>VDP / VISIBILITY</h1>
+            <span class="module-version-badge">2.0</span>
+          </div>
+          <p class="subtitle">Non-precision approach visual segment advisory</p>
+        </header>
+
+        <form id="vdp-form" class="stack acn-form" novalidate>
+          <section class="card stack acn-section-card">
+            <h2>Approach Data</h2>
+
+            <div class="field">
+              <label for="vdp-procedure-path-angle">Procedure Descent Path (°)</label>
+              <input
+                id="vdp-procedure-path-angle"
+                name="procedurePathAngle"
+                class="input number-input"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9.,]*"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="vdp-mdh-ft">MDH / Height (ft)</label>
+              <input
+                id="vdp-mdh-ft"
+                name="mdhFt"
+                class="input number-input"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9.,]*"
+                autocomplete="off"
+                required
+              >
+              <p class="muted-note">Use height above threshold/aerodrome already corrected as required.</p>
+            </div>
+
+            <div class="field">
+              <label for="vdp-papi-angle">PAPI Angle (°)</label>
+              <input
+                id="vdp-papi-angle"
+                name="papiAngle"
+                class="input number-input"
+                type="text"
+                inputmode="decimal"
+                pattern="[0-9.,]*"
+                value="3.0"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <p id="vdp-validation-message" class="inline-message" aria-live="polite" hidden></p>
+
+            <div class="actions">
+              <button class="button" type="button" id="vdp-clear-button">CLEAR</button>
+              <button class="button primary" type="submit">CALCULATE</button>
+            </div>
+          </section>
+        </form>
+
+        <section class="card result-section" id="vdp-result-section" hidden>
+          <h3 class="result-card-title">VDP / Visibility Advisory</h3>
+          <div id="vdp-results-list" class="kv-list"></div>
+          <p id="vdp-comparison-note" class="result-note" hidden></p>
+          <p class="muted-note">Advisory calculation only. Published chart minima, company minima, aircraft manuals and SOP remain controlling.</p>
+        </section>
+      </section>
+
       <section class="screen app-view" id="acnView" hidden aria-hidden="true">
         <div class="module-nav">
           <button class="button module-back" type="button" id="backFromAcnBtn">Back</button>
@@ -1764,7 +1846,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">1.9</span>
+            <span class="module-version-badge">2.0</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1909,6 +1991,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=1.9" defer></script>
+    <script src="app.js?v=2.0" defer></script>
   </body>
 </html>

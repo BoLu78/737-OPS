@@ -1,4 +1,4 @@
-const APP_VERSION = "1.9";
+const APP_VERSION = "2.0";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -205,6 +205,8 @@ const BRAKE_TAXI_ENERGY_RULES = {
 };
 const STATUTE_MILE_METERS = 1609.344;
 const NAUTICAL_MILE_METERS = 1852;
+const FEET_PER_NM = 6076.12;
+const METERS_PER_NM = 1852;
 const FEET_PER_STATUTE_MILE = 5280;
 const NM_TO_STATUTE_MILE = 1.150779448;
 const KM_PER_STATUTE_MILE = 1.609344;
@@ -681,14 +683,17 @@ const brakeCoolingView = document.getElementById("brakeCoolingView");
 const fuelView = document.getElementById("fuelView");
 const tripInfoB737View = document.getElementById("tripInfoB737View");
 const acnView = document.getElementById("acnView");
+const vdpView = document.getElementById("vdpView");
 const openBrakeCoolingBtn = document.getElementById("openBrakeCoolingBtn");
 const openFuelBtn = document.getElementById("openFuelBtn");
 const openAcnBtn = document.getElementById("openAcnBtn");
 const openTripInfoBtn = document.getElementById("openTripInfoBtn");
+const openVdpBtn = document.getElementById("openVdpBtn");
 const backFromBrakeCoolingBtn = document.getElementById("backFromBrakeCoolingBtn");
 const backFromFuelBtn = document.getElementById("backFromFuelBtn");
 const backFromAcnBtn = document.getElementById("backFromAcnBtn");
 const backFromTripInfoB737Btn = document.getElementById("backFromTripInfoB737Btn");
+const backFromVdpBtn = document.getElementById("backFromVdpBtn");
 const form = document.getElementById("fuel-form");
 const inputScreen = document.getElementById("input-screen");
 const resultsScreen = document.getElementById("results-screen");
@@ -725,6 +730,12 @@ const brakeCoolingStatusSubtitle = document.getElementById("brake-cooling-status
 const brakeCoolingResultsList = document.getElementById("brake-cooling-results-list");
 const brakeCoolingWarning = document.getElementById("brake-cooling-warning");
 const brakeCoolingSource = document.getElementById("brake-cooling-source");
+const vdpForm = document.getElementById("vdp-form");
+const vdpValidationMessage = document.getElementById("vdp-validation-message");
+const vdpClearButton = document.getElementById("vdp-clear-button");
+const vdpResultSection = document.getElementById("vdp-result-section");
+const vdpResultsList = document.getElementById("vdp-results-list");
+const vdpComparisonNote = document.getElementById("vdp-comparison-note");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -772,10 +783,15 @@ function attachEventListeners() {
     showTripInfoB737View();
   });
 
+  openVdpBtn.addEventListener("click", () => {
+    showVdpView();
+  });
+
   backFromBrakeCoolingBtn.addEventListener("click", showHomeView);
   backFromFuelBtn.addEventListener("click", showHomeView);
   backFromAcnBtn.addEventListener("click", showHomeView);
   backFromTripInfoB737Btn.addEventListener("click", showHomeView);
+  backFromVdpBtn.addEventListener("click", showHomeView);
 
   acnForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -794,6 +810,18 @@ function attachEventListeners() {
 
   brakeCoolingClearButton.addEventListener("click", () => {
     resetBrakeCoolingModule(true);
+  });
+
+  vdpForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateVdpModule();
+  });
+
+  vdpForm.addEventListener("input", clearVdpValidation);
+  vdpForm.addEventListener("change", clearVdpValidation);
+
+  vdpClearButton.addEventListener("click", () => {
+    resetVdpModule(true);
   });
 
   form.addEventListener("submit", (event) => {
@@ -848,6 +876,7 @@ function initializeApp() {
   showHomeView();
   initializeAcnModule();
   initializeBrakeCoolingModule();
+  initializeVdpModule();
   initializeTripInfoB737Module();
 }
 
@@ -1106,7 +1135,7 @@ function renderKeyValueList(container, rows) {
 }
 
 function showAppView(activeView) {
-  [homeView, brakeCoolingView, fuelView, tripInfoB737View, acnView].forEach((view) => {
+  [homeView, brakeCoolingView, fuelView, tripInfoB737View, acnView, vdpView].forEach((view) => {
     const isActive = view === activeView;
     view.hidden = !isActive;
     view.setAttribute("aria-hidden", String(!isActive));
@@ -1130,10 +1159,160 @@ function showAcnView() {
   showAppView(acnView);
 }
 
+function showVdpView() {
+  showAppView(vdpView);
+}
+
 
 function showTripInfoB737View() {
   showAppView(tripInfoB737View);
   tripInfoB737ResizeSignatureCanvas(true);
+}
+
+function initializeVdpModule() {
+  resetVdpModule(false);
+}
+
+function resetVdpModule(shouldFocus) {
+  vdpForm.reset();
+  vdpForm.elements.papiAngle.value = "3.0";
+  clearVdpValidation();
+  hideVdpResult();
+
+  if (shouldFocus) {
+    vdpForm.elements.procedurePathAngle.focus();
+  }
+}
+
+function evaluateVdpModule() {
+  clearVdpValidation();
+
+  const values = readVdpInputValues();
+  if (!values) {
+    hideVdpResult();
+    return;
+  }
+
+  renderVdpResult(calculateVdpResult(values));
+}
+
+function readVdpInputValues() {
+  const procedurePathAngle = parsePositiveNumber(vdpForm.elements.procedurePathAngle.value);
+  const mdhFt = parsePositiveNumber(vdpForm.elements.mdhFt.value);
+  const papiAngle = parsePositiveNumber(vdpForm.elements.papiAngle.value);
+
+  if (procedurePathAngle === null) {
+    showVdpValidation("Enter a valid procedure descent path greater than 0.");
+    return null;
+  }
+
+  if (mdhFt === null) {
+    showVdpValidation("Enter a valid MDH / height greater than 0.");
+    return null;
+  }
+
+  if (papiAngle === null) {
+    showVdpValidation("Enter a valid PAPI angle greater than 0.");
+    return null;
+  }
+
+  return {
+    procedurePathAngle,
+    mdhFt,
+    papiAngle,
+  };
+}
+
+function calculateVdpResult(values) {
+  const procedureFeetPerNm = feetPerNm(values.procedurePathAngle);
+  const papiFeetPerNm = feetPerNm(values.papiAngle);
+  const procedureVdpNm = values.mdhFt / procedureFeetPerNm;
+  const papiVdpNm = values.mdhFt / papiFeetPerNm;
+  const procedureVisibilityMeters = procedureVdpNm * METERS_PER_NM;
+  const papiVisibilityMeters = papiVdpNm * METERS_PER_NM;
+  const recommendedVdpNm = Math.max(procedureVdpNm, papiVdpNm);
+  const recommendedVisibilityMeters = Math.max(
+    procedureVisibilityMeters,
+    papiVisibilityMeters
+  );
+
+  return {
+    ...values,
+    procedureVdpNm,
+    papiVdpNm,
+    procedureVisibilityMeters,
+    papiVisibilityMeters,
+    recommendedVdpNm,
+    recommendedVisibilityMeters,
+    conservativeReference:
+      papiVdpNm > procedureVdpNm ? "PAPI path" : "Procedure path",
+  };
+}
+
+function feetPerNm(angleDeg) {
+  return Math.tan((angleDeg * Math.PI) / 180) * FEET_PER_NM;
+}
+
+function renderVdpResult(result) {
+  vdpResultSection.hidden = false;
+
+  renderKeyValueList(vdpResultsList, [
+    ["MDH / Height", `${formatNumber(result.mdhFt, 0)} ft`],
+    ["Procedure path", `${formatVdpAngle(result.procedurePathAngle)}°`],
+    ["Procedure VDP", formatVdpNm(result.procedureVdpNm)],
+    ["Procedure visibility", formatVdpVisibility(result.procedureVisibilityMeters)],
+    ["PAPI angle", `${formatVdpAngle(result.papiAngle)}°`],
+    ["PAPI VDP", formatVdpNm(result.papiVdpNm)],
+    ["PAPI visibility", formatVdpVisibility(result.papiVisibilityMeters)],
+    [
+      "Recommended advisory visibility",
+      formatVdpVisibility(result.recommendedVisibilityMeters),
+    ],
+    ["Conservative reference", result.conservativeReference],
+  ]);
+
+  vdpComparisonNote.hidden = false;
+  vdpComparisonNote.classList.toggle("warn", result.papiAngle < result.procedurePathAngle);
+
+  if (result.papiAngle < result.procedurePathAngle) {
+    vdpComparisonNote.textContent =
+      "PAPI path is lower than the procedure path. PAPI-based visual segment distance is more conservative.";
+  } else if (result.papiAngle > result.procedurePathAngle) {
+    vdpComparisonNote.textContent = "Procedure path distance is more conservative than PAPI.";
+  } else {
+    vdpComparisonNote.textContent = "Procedure path and PAPI path are aligned.";
+  }
+}
+
+function hideVdpResult() {
+  vdpResultSection.hidden = true;
+  vdpResultsList.textContent = "";
+  vdpComparisonNote.textContent = "";
+  vdpComparisonNote.hidden = true;
+  vdpComparisonNote.classList.remove("warn");
+}
+
+function showVdpValidation(message) {
+  vdpValidationMessage.textContent = message;
+  vdpValidationMessage.hidden = false;
+}
+
+function clearVdpValidation() {
+  vdpValidationMessage.textContent = "";
+  vdpValidationMessage.hidden = true;
+}
+
+function formatVdpAngle(value) {
+  return value.toFixed(2);
+}
+
+function formatVdpNm(value) {
+  return `${value.toFixed(1)} NM`;
+}
+
+function formatVdpVisibility(valueMeters) {
+  const roundedMeters = Math.round(valueMeters / 10) * 10;
+  return `${(roundedMeters / 1000).toFixed(1)} km / ${formatNumber(roundedMeters, 0)} m`;
 }
 
 function tripInfoGetB737DefaultAircraft() {
