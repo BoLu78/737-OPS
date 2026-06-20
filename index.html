@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="2.2">
+    <meta name="app-version" content="2.3">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=2.2">
+    <link rel="manifest" href="manifest.json?v=2.3">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -618,9 +618,16 @@
       }
 
       .vdp-diagram .vdp-diagram-runway {
-        stroke: var(--accent-blue);
+        stroke: var(--text);
         stroke-width: 3;
         stroke-linecap: round;
+      }
+
+      .vdp-diagram .vdp-diagram-reference {
+        stroke: rgba(20, 31, 46, 0.5);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-dasharray: 6 5;
       }
 
       .vdp-diagram .vdp-diagram-path {
@@ -1042,7 +1049,7 @@
         <header class="hero">
           <div class="home-logo-wrap">
             <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-            <span class="home-version">v2.2</span>
+            <span class="home-version">v2.3</span>
           </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
@@ -1081,7 +1088,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">2.2</span>
+            <span class="module-version-badge">2.3</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1184,7 +1191,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">2.2</span>
+              <span class="module-version-badge">2.3</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1317,7 +1324,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">2.2</span>
+            <span class="module-version-badge">2.3</span>
           </div>
         </header>
 
@@ -1830,7 +1837,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>VDP / VISIBILITY</h1>
-            <span class="module-version-badge">2.2</span>
+            <span class="module-version-badge">2.3</span>
           </div>
           <p class="subtitle">Non-precision approach visual segment advisory</p>
         </header>
@@ -1906,7 +1913,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">2.2</span>
+            <span class="module-version-badge">2.3</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -2051,6 +2058,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=2.2" defer></script>
+    <script src="app.js?v=2.3" defer></script>
   </body>
 </html>

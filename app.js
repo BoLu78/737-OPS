@@ -1,4 +1,4 @@
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -1306,10 +1306,10 @@ function renderVdpDiagram(result) {
   const procedureAngleDisplay = `PROC ${formatVdpAngle(result.procedurePathAngle)}°`;
   const papiAngleDisplay = `PAPI ${formatVdpAngle(result.papiAngle)}°`;
   const mdhDisplay = `${formatNumber(result.mdhFt, 0)} ft`;
-  const groundY = 120;
+  const groundY = 124;
   const vdpX = 126;
   const thrX = 268;
-  const runwayEndX = 302;
+  const runwayEndX = 306;
   const diagramScale = 8.5;
   const visualDrop = Math.max(
     34,
@@ -1323,26 +1323,31 @@ function renderVdpDiagram(result) {
   const vdpPathY = groundY - visualDrop;
   const aircraftX = vdpX - procRun;
   const aircraftY = Math.max(16, vdpPathY - procDrop);
+  const procLabelX = (aircraftX + vdpX) / 2;
+  const procLabelY = Math.max(13, (aircraftY + vdpPathY) / 2 - 10);
+  const papiLabelX = (vdpX + thrX) / 2;
+  const papiLabelY = (vdpPathY + groundY) / 2 - 10;
 
   vdpDiagram.innerHTML = `
-    <svg viewBox="0 0 320 170" role="img" aria-label="VDP side profile diagram">
+    <svg viewBox="0 0 320 198" role="img" aria-label="VDP side profile diagram">
       <text x="14" y="20" class="vdp-diagram-muted">ALT</text>
       <text x="14" y="44" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
       <line x1="${vdpX}" y1="${vdpPathY}" x2="${vdpX}" y2="${groundY}" class="vdp-diagram-guide"></line>
-      <line x1="34" y1="${groundY}" x2="${runwayEndX}" y2="${groundY}" class="vdp-diagram-runway"></line>
+      <line x1="28" y1="${groundY}" x2="${thrX}" y2="${groundY}" class="vdp-diagram-reference"></line>
+      <line x1="${thrX}" y1="${groundY}" x2="${runwayEndX}" y2="${groundY}" class="vdp-diagram-runway"></line>
       <line x1="${aircraftX}" y1="${aircraftY}" x2="${vdpX}" y2="${vdpPathY}" class="vdp-diagram-path"></line>
       <line x1="${vdpX}" y1="${vdpPathY}" x2="${thrX}" y2="${groundY}" class="vdp-diagram-visual-path"></line>
       <circle cx="${aircraftX}" cy="${aircraftY}" r="6" class="vdp-diagram-aircraft"></circle>
       <circle cx="${vdpX}" cy="${vdpPathY}" r="5" class="vdp-diagram-point"></circle>
       <circle cx="${vdpX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
       <circle cx="${thrX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
-      <text x="282" y="${groundY - 8}" class="vdp-diagram-muted">RWY</text>
-      <text x="${vdpX - 13}" y="139">VDP</text>
-      <text x="${thrX - 12}" y="139">THR</text>
-      <text x="${aircraftX + 12}" y="${Math.max(18, aircraftY + 24)}" class="vdp-diagram-mono">${procedureAngleDisplay}</text>
-      <text x="${vdpX + 32}" y="${vdpPathY + 19}" class="vdp-diagram-mono">${papiAngleDisplay}</text>
-      <text x="${vdpX - 22}" y="154" class="vdp-diagram-mono">${vdpNmDisplay}</text>
-      <text x="${vdpX - 22}" y="166" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
+      <text x="287" y="${groundY - 8}" text-anchor="middle" class="vdp-diagram-muted">RWY</text>
+      <text x="${vdpX}" y="148" text-anchor="middle">VDP</text>
+      <text x="${thrX}" y="148" text-anchor="middle">THR</text>
+      <text x="${procLabelX}" y="${procLabelY}" text-anchor="middle" class="vdp-diagram-mono">${procedureAngleDisplay}</text>
+      <text x="${papiLabelX}" y="${papiLabelY}" text-anchor="middle" class="vdp-diagram-mono">${papiAngleDisplay}</text>
+      <text x="${vdpX}" y="171" text-anchor="middle" class="vdp-diagram-mono">${vdpNmDisplay}</text>
+      <text x="${vdpX}" y="188" text-anchor="middle" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
     </svg>
   `;
 }
