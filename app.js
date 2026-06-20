@@ -1,4 +1,4 @@
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -1300,14 +1300,47 @@ function formatVdpVisibility(valueMeters) {
   return `${formatNumber(roundedMeters, 0)} m`;
 }
 
+function placeVdpSegmentLabel(x1, y1, x2, y2, options = {}) {
+  const {
+    offset = 24,
+    along = 0,
+    halfWidth = 38,
+    halfHeight = 7,
+  } = options;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy) || 1;
+  const tangentX = dx / length;
+  const tangentY = dy / length;
+  const normalX = dy / length;
+  const normalY = -dx / length;
+  const midpointX = (x1 + x2) / 2;
+  const midpointY = (y1 + y2) / 2;
+  const padding = 4;
+
+  return {
+    x: Math.max(halfWidth + padding, Math.min(320 - halfWidth - padding,
+      midpointX + tangentX * along + normalX * offset)),
+    y: Math.max(halfHeight + padding, Math.min(210 - halfHeight - padding,
+      midpointY + tangentY * along + normalY * offset)),
+  };
+}
+
+function vdpLabelBoxesOverlap(first, second) {
+  return (
+    Math.abs(first.x - second.x) < first.halfWidth + second.halfWidth + 8
+    && Math.abs(first.y - second.y) < first.halfHeight + second.halfHeight + 6
+  );
+}
+
 function renderVdpDiagram(result) {
   const vdpNmDisplay = formatVdpNm(result.procedureVdpNm);
   const visibilityDisplay = formatVdpVisibility(result.procedureVisibilityMeters);
   const procedureAngleDisplay = `PROC ${formatVdpAngle(result.procedurePathAngle)}°`;
   const papiAngleDisplay = `PAPI ${formatVdpAngle(result.papiAngle)}°`;
   const mdhDisplay = `${formatNumber(result.mdhFt, 0)} ft`;
-  const groundY = 124;
-  const vdpX = 126;
+  const groundY = 132;
+  const vdpX = 132;
   const thrX = 268;
   const runwayEndX = 306;
   const diagramScale = 8.5;
@@ -1315,7 +1348,7 @@ function renderVdpDiagram(result) {
     34,
     Math.min(74, Math.tan((result.papiAngle * Math.PI) / 180) * (thrX - vdpX) * diagramScale)
   );
-  const procRun = 74;
+  const procRun = 72;
   const procDrop = Math.max(
     24,
     Math.min(58, Math.tan((result.procedurePathAngle * Math.PI) / 180) * procRun * diagramScale)
@@ -1323,15 +1356,29 @@ function renderVdpDiagram(result) {
   const vdpPathY = groundY - visualDrop;
   const aircraftX = vdpX - procRun;
   const aircraftY = Math.max(16, vdpPathY - procDrop);
-  const procLabelX = (aircraftX + vdpX) / 2;
-  const procLabelY = Math.max(13, (aircraftY + vdpPathY) / 2 - 10);
-  const papiLabelX = (vdpX + thrX) / 2;
-  const papiLabelY = (vdpPathY + groundY) / 2 - 10;
+  const procLabel = {
+    ...placeVdpSegmentLabel(aircraftX, aircraftY, vdpX, vdpPathY, { along: 10 }),
+    halfWidth: 38,
+    halfHeight: 7,
+  };
+  let papiLabel = {
+    ...placeVdpSegmentLabel(vdpX, vdpPathY, thrX, groundY),
+    halfWidth: 38,
+    halfHeight: 7,
+  };
+
+  if (vdpLabelBoxesOverlap(procLabel, papiLabel)) {
+    papiLabel = {
+      ...placeVdpSegmentLabel(vdpX, vdpPathY, thrX, groundY, { offset: -24 }),
+      halfWidth: 38,
+      halfHeight: 7,
+    };
+  }
 
   vdpDiagram.innerHTML = `
-    <svg viewBox="0 0 320 198" role="img" aria-label="VDP side profile diagram">
-      <text x="14" y="20" class="vdp-diagram-muted">ALT</text>
-      <text x="14" y="44" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
+    <svg viewBox="0 0 320 210" role="img" aria-label="VDP side profile diagram">
+      <text x="8" y="16" class="vdp-diagram-muted">ALT</text>
+      <text x="8" y="48" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
       <line x1="${vdpX}" y1="${vdpPathY}" x2="${vdpX}" y2="${groundY}" class="vdp-diagram-guide"></line>
       <line x1="28" y1="${groundY}" x2="${thrX}" y2="${groundY}" class="vdp-diagram-reference"></line>
       <line x1="${thrX}" y1="${groundY}" x2="${runwayEndX}" y2="${groundY}" class="vdp-diagram-runway"></line>
@@ -1341,13 +1388,13 @@ function renderVdpDiagram(result) {
       <circle cx="${vdpX}" cy="${vdpPathY}" r="5" class="vdp-diagram-point"></circle>
       <circle cx="${vdpX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
       <circle cx="${thrX}" cy="${groundY}" r="5" class="vdp-diagram-point"></circle>
-      <text x="287" y="${groundY - 8}" text-anchor="middle" class="vdp-diagram-muted">RWY</text>
-      <text x="${vdpX}" y="148" text-anchor="middle">VDP</text>
-      <text x="${thrX}" y="148" text-anchor="middle">THR</text>
-      <text x="${procLabelX}" y="${procLabelY}" text-anchor="middle" class="vdp-diagram-mono">${procedureAngleDisplay}</text>
-      <text x="${papiLabelX}" y="${papiLabelY}" text-anchor="middle" class="vdp-diagram-mono">${papiAngleDisplay}</text>
-      <text x="${vdpX}" y="171" text-anchor="middle" class="vdp-diagram-mono">${vdpNmDisplay}</text>
-      <text x="${vdpX}" y="188" text-anchor="middle" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
+      <text x="287" y="${groundY - 10}" text-anchor="middle" class="vdp-diagram-muted">RWY</text>
+      <text x="${vdpX}" y="158" text-anchor="middle">VDP</text>
+      <text x="${thrX}" y="158" text-anchor="middle">THR</text>
+      <text x="${procLabel.x}" y="${procLabel.y}" text-anchor="middle" dominant-baseline="middle" class="vdp-diagram-mono">${procedureAngleDisplay}</text>
+      <text x="${papiLabel.x}" y="${papiLabel.y}" text-anchor="middle" dominant-baseline="middle" class="vdp-diagram-mono">${papiAngleDisplay}</text>
+      <text x="${vdpX}" y="183" text-anchor="middle" class="vdp-diagram-mono">${vdpNmDisplay}</text>
+      <text x="${vdpX}" y="201" text-anchor="middle" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
     </svg>
   `;
 }
