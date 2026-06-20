@@ -1,4 +1,4 @@
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
@@ -735,7 +735,7 @@ const vdpValidationMessage = document.getElementById("vdp-validation-message");
 const vdpClearButton = document.getElementById("vdp-clear-button");
 const vdpResultSection = document.getElementById("vdp-result-section");
 const vdpResultsList = document.getElementById("vdp-results-list");
-const vdpComparisonNote = document.getElementById("vdp-comparison-note");
+const vdpDiagram = document.getElementById("vdp-diagram");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -1225,27 +1225,13 @@ function readVdpInputValues() {
 
 function calculateVdpResult(values) {
   const procedureFeetPerNm = feetPerNm(values.procedurePathAngle);
-  const papiFeetPerNm = feetPerNm(values.papiAngle);
   const procedureVdpNm = values.mdhFt / procedureFeetPerNm;
-  const papiVdpNm = values.mdhFt / papiFeetPerNm;
   const procedureVisibilityMeters = procedureVdpNm * METERS_PER_NM;
-  const papiVisibilityMeters = papiVdpNm * METERS_PER_NM;
-  const recommendedVdpNm = Math.max(procedureVdpNm, papiVdpNm);
-  const recommendedVisibilityMeters = Math.max(
-    procedureVisibilityMeters,
-    papiVisibilityMeters
-  );
 
   return {
     ...values,
     procedureVdpNm,
-    papiVdpNm,
     procedureVisibilityMeters,
-    papiVisibilityMeters,
-    recommendedVdpNm,
-    recommendedVisibilityMeters,
-    conservativeReference:
-      papiVdpNm > procedureVdpNm ? "PAPI path" : "Procedure path",
   };
 }
 
@@ -1257,39 +1243,16 @@ function renderVdpResult(result) {
   vdpResultSection.hidden = false;
 
   renderKeyValueList(vdpResultsList, [
-    ["MDH / Height", `${formatNumber(result.mdhFt, 0)} ft`],
-    ["Procedure path", `${formatVdpAngle(result.procedurePathAngle)}°`],
     ["Procedure VDP", formatVdpNm(result.procedureVdpNm)],
     ["Procedure visibility", formatVdpVisibility(result.procedureVisibilityMeters)],
-    ["PAPI angle", `${formatVdpAngle(result.papiAngle)}°`],
-    ["PAPI VDP", formatVdpNm(result.papiVdpNm)],
-    ["PAPI visibility", formatVdpVisibility(result.papiVisibilityMeters)],
-    [
-      "Recommended advisory visibility",
-      formatVdpVisibility(result.recommendedVisibilityMeters),
-    ],
-    ["Conservative reference", result.conservativeReference],
   ]);
-
-  vdpComparisonNote.hidden = false;
-  vdpComparisonNote.classList.toggle("warn", result.papiAngle < result.procedurePathAngle);
-
-  if (result.papiAngle < result.procedurePathAngle) {
-    vdpComparisonNote.textContent =
-      "PAPI path is lower than the procedure path. PAPI-based visual segment distance is more conservative.";
-  } else if (result.papiAngle > result.procedurePathAngle) {
-    vdpComparisonNote.textContent = "Procedure path distance is more conservative than PAPI.";
-  } else {
-    vdpComparisonNote.textContent = "Procedure path and PAPI path are aligned.";
-  }
+  renderVdpDiagram(result);
 }
 
 function hideVdpResult() {
   vdpResultSection.hidden = true;
   vdpResultsList.textContent = "";
-  vdpComparisonNote.textContent = "";
-  vdpComparisonNote.hidden = true;
-  vdpComparisonNote.classList.remove("warn");
+  vdpDiagram.textContent = "";
 }
 
 function showVdpValidation(message) {
@@ -1312,7 +1275,33 @@ function formatVdpNm(value) {
 
 function formatVdpVisibility(valueMeters) {
   const roundedMeters = Math.round(valueMeters / 10) * 10;
-  return `${(roundedMeters / 1000).toFixed(1)} km / ${formatNumber(roundedMeters, 0)} m`;
+  return `${formatNumber(roundedMeters, 0)} m`;
+}
+
+function renderVdpDiagram(result) {
+  const vdpNmDisplay = formatVdpNm(result.procedureVdpNm);
+  const visibilityDisplay = formatVdpVisibility(result.procedureVisibilityMeters);
+  const angleDisplay = `${formatVdpAngle(result.procedurePathAngle)}°`;
+  const mdhDisplay = `${formatNumber(result.mdhFt, 0)} ft`;
+
+  vdpDiagram.innerHTML = `
+    <svg viewBox="0 0 320 170" role="img" aria-label="VDP side profile diagram">
+      <text x="14" y="20" class="vdp-diagram-muted">ALT</text>
+      <text x="14" y="44" class="vdp-diagram-muted vdp-diagram-mono">${mdhDisplay}</text>
+      <line x1="84" y1="52" x2="84" y2="112" class="vdp-diagram-guide"></line>
+      <line x1="36" y1="112" x2="296" y2="112" class="vdp-diagram-runway"></line>
+      <line x1="84" y1="52" x2="198" y2="112" class="vdp-diagram-path"></line>
+      <circle cx="84" cy="52" r="6" class="vdp-diagram-aircraft"></circle>
+      <circle cx="84" cy="112" r="6" class="vdp-diagram-point"></circle>
+      <circle cx="198" cy="112" r="6" class="vdp-diagram-point"></circle>
+      <text x="218" y="105" class="vdp-diagram-muted">RWY</text>
+      <text x="72" y="132">VDP</text>
+      <text x="188" y="132">THR</text>
+      <text x="150" y="78" class="vdp-diagram-mono">${angleDisplay}</text>
+      <text x="74" y="150" class="vdp-diagram-mono">${vdpNmDisplay}</text>
+      <text x="74" y="164" class="vdp-diagram-mono">VIS ${visibilityDisplay}</text>
+    </svg>
+  `;
 }
 
 function tripInfoGetB737DefaultAircraft() {

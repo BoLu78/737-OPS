@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="2.0">
+    <meta name="app-version" content="2.1">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=2.0">
+    <link rel="manifest" href="manifest.json?v=2.1">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -589,6 +589,62 @@
         color: var(--fail);
       }
 
+      .vdp-diagram {
+        width: 100%;
+        padding-top: 8px;
+      }
+
+      .vdp-diagram svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .vdp-diagram text {
+        fill: var(--text);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .vdp-diagram .vdp-diagram-muted {
+        fill: var(--muted);
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .vdp-diagram .vdp-diagram-mono {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .vdp-diagram .vdp-diagram-runway {
+        stroke: var(--accent-blue);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+
+      .vdp-diagram .vdp-diagram-path {
+        stroke: var(--accent-strong);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+
+      .vdp-diagram .vdp-diagram-guide {
+        stroke: rgba(20, 31, 46, 0.28);
+        stroke-width: 1.5;
+        stroke-dasharray: 4 4;
+      }
+
+      .vdp-diagram .vdp-diagram-point {
+        fill: var(--accent-blue);
+      }
+
+      .vdp-diagram .vdp-diagram-aircraft {
+        fill: var(--accent-strong);
+        stroke: #fffaf0;
+        stroke-width: 2;
+      }
+
       .kv-value.brake-cooling-ground-time-warn {
         color: var(--accent-strong);
         font-size: 1.12em;
@@ -980,7 +1036,7 @@
         <header class="hero">
           <div class="home-logo-wrap">
             <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-            <span class="home-version">v2.0</span>
+            <span class="home-version">v2.1</span>
           </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
@@ -1019,7 +1075,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">2.0</span>
+            <span class="module-version-badge">2.1</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1122,7 +1178,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">2.0</span>
+              <span class="module-version-badge">2.1</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1255,7 +1311,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">2.0</span>
+            <span class="module-version-badge">2.1</span>
           </div>
         </header>
 
@@ -1768,7 +1824,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>VDP / VISIBILITY</h1>
-            <span class="module-version-badge">2.0</span>
+            <span class="module-version-badge">2.1</span>
           </div>
           <p class="subtitle">Non-precision approach visual segment advisory</p>
         </header>
@@ -1831,10 +1887,8 @@
         </form>
 
         <section class="card result-section" id="vdp-result-section" hidden>
-          <h3 class="result-card-title">VDP / Visibility Advisory</h3>
           <div id="vdp-results-list" class="kv-list"></div>
-          <p id="vdp-comparison-note" class="result-note" hidden></p>
-          <p class="muted-note">Advisory calculation only. Published chart minima, company minima, aircraft manuals and SOP remain controlling.</p>
+          <div id="vdp-diagram" class="vdp-diagram" aria-hidden="true"></div>
         </section>
       </section>
 
@@ -1846,7 +1900,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">2.0</span>
+            <span class="module-version-badge">2.1</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -1991,6 +2045,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=2.0" defer></script>
+    <script src="app.js?v=2.1" defer></script>
   </body>
 </html>
