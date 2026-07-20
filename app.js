@@ -1,8 +1,22 @@
-const APP_VERSION = "2.8";
+const APP_VERSION = "2.9";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
 const FUEL_STORAGE_KEY = "737OpsFuelState";
+const FUEL_CAPACITY_BY_FAMILY = {
+  NG: {
+    label: "B737 NG",
+    mainTankMax: 3915,
+    centerMax: 13066,
+    totalMax: 20896,
+  },
+  MAX: {
+    label: "B737 MAX",
+    mainTankMax: 3869,
+    centerMax: 12990,
+    totalMax: 20728,
+  },
+};
 const ACN_AIRCRAFT_DATA = {
   "B737 NG": {
     label: "B737 NG",
@@ -897,12 +911,12 @@ function attachEventListeners() {
 function initializeApp() {
   updateToleranceText();
   restoreFuelCheckState();
-  updateFuelCheck({ persist: false });
   showHomeView();
   initializeAcnModule();
   initializeBrakeCoolingModule();
   initializeVdpModule();
   initializeTripInfoB737Module();
+  updateFuelCheck({ persist: false });
 }
 
 function registerServiceWorker() {
@@ -945,8 +959,15 @@ function readInputValues() {
 }
 
 function readFuelCheckState() {
+  syncDerivedFuelFields();
+
   const densityUnit = form.elements.densityUnit.value;
   const volumeUnit = form.elements.volumeUnit.value;
+  const fuelCapacity = getFuelCapacityForCurrentAircraft();
+  const requestedFuel = parseFuelNumberState(form.elements.requestedFuel.value, {
+    positive: false,
+    integer: true,
+  });
   const tanks = [
     {
       key: "left",
@@ -1022,11 +1043,16 @@ function readFuelCheckState() {
     densityValue.empty;
   const hasInvalidFields =
     parsedTanks.some((tank) => tank.before.invalid || tank.depart.invalid) ||
+    requestedFuel.invalid ||
     actualVolume.invalid ||
     densityValue.invalid;
   const hasNegativeTankUplift = parsedTanks.some(
     (tank) => tank.uplift !== null && tank.uplift < 0
   );
+  const requestedFuelOverMax =
+    !requestedFuel.empty &&
+    !requestedFuel.invalid &&
+    requestedFuel.value > fuelCapacity.totalMax;
   const hasPositiveTlbUplift = totalUplift !== null && totalUplift > 0;
   const totalUpliftMatchesDepartMinusBefore =
     totalUplift !== null &&
@@ -1034,12 +1060,28 @@ function readFuelCheckState() {
     Math.abs(totalUplift - totalUpliftCrosscheck) < 0.000001;
   const errors = [];
 
-  if (hasInvalidFields) {
+  if (
+    parsedTanks.some((tank) => tank.before.invalid || tank.depart.invalid) ||
+    actualVolume.invalid ||
+    densityValue.invalid
+  ) {
     errors.push("Enter valid positive receipt values and non-negative tank values.");
   }
 
+  if (requestedFuel.invalid) {
+    errors.push("Requested Fuel must be a valid whole kg value.");
+  }
+
+  if (requestedFuelOverMax) {
+    errors.push(
+      `Requested fuel exceeds ${fuelCapacity.label} usable fuel capacity of ${formatFuelKg(
+        fuelCapacity.totalMax
+      )}.`
+    );
+  }
+
   if (hasNegativeTankUplift) {
-    errors.push("Review tank uplift: Depart is lower than Before for one or more tanks.");
+    errors.push("Requested fuel is lower than the current fuel on board in one or more tanks.");
   }
 
   if (!hasIncompleteFields && !hasInvalidFields && !hasPositiveTlbUplift) {
@@ -1066,6 +1108,10 @@ function readFuelCheckState() {
     values: {
       densityUnit,
       volumeUnit,
+      requestedFuelState: requestedFuel,
+      requestedFuelOverMax,
+      requestedFuel: requestedFuel.value,
+      fuelCapacity,
       actualVolumeState: actualVolume,
       actualVolume: actualVolume.value,
       actualVolumeLiters,
@@ -1081,7 +1127,7 @@ function readFuelCheckState() {
   };
 }
 
-function parseFuelNumberState(value, { positive }) {
+function parseFuelNumberState(value, { positive, integer = false }) {
   const normalizedValue = normalizeNumericInput(value);
 
   if (normalizedValue === null) {
@@ -1093,7 +1139,11 @@ function parseFuelNumberState(value, { positive }) {
   }
 
   const parsed = Number(normalizedValue);
-  const invalid = !Number.isFinite(parsed) || parsed < 0 || (positive && parsed <= 0);
+  const invalid =
+    !Number.isFinite(parsed) ||
+    parsed < 0 ||
+    (positive && parsed <= 0) ||
+    (integer && !Number.isInteger(parsed));
 
   return {
     value: invalid ? null : parsed,
@@ -1137,10 +1187,11 @@ function updateFuelCheck({ persist = true } = {}) {
 
 function renderFuelCheckInputs(state) {
   state.tanks.forEach((tank) => {
+    const hasNegativeUplift = tank.uplift !== null && tank.uplift < 0;
     setFuelFieldValidity(tank.beforeField, tank.before.invalid);
-    setFuelFieldValidity(tank.departField, tank.depart.invalid);
+    setFuelFieldValidity(tank.departField, tank.depart.invalid || hasNegativeUplift);
     renderFuelOutput(tank.upliftNode, tank.uplift, {
-      negative: tank.uplift !== null && tank.uplift < 0,
+      negative: hasNegativeUplift,
     });
   });
 
@@ -1154,6 +1205,10 @@ function renderFuelCheckInputs(state) {
     total: true,
     negative: state.values.totalUplift !== null && state.values.totalUplift < 0,
   });
+  setFuelFieldValidity(
+    form.elements.requestedFuel,
+    state.values.requestedFuelState.invalid || state.values.requestedFuelOverMax
+  );
   setFuelFieldValidity(form.elements.actualVolume, state.values.actualVolumeState.invalid);
   setFuelFieldValidity(form.elements.densityValue, state.values.densityValueState.invalid);
 
@@ -1171,6 +1226,70 @@ function renderFuelCheckInputs(state) {
         : `Density: ${formatFuelDensityConverted(state.values.densityKgPerL)}`;
   fuelCalculatedKgs.textContent =
     state.values.calculatedKgs === null ? "--" : formatFuelKg(state.values.calculatedKgs);
+}
+
+function syncDerivedFuelFields() {
+  syncFuelBeforeFromRemained();
+  syncFuelDepartFromRequested();
+}
+
+function syncFuelBeforeFromRemained() {
+  [
+    ["remainedLeft", "beforeLeft"],
+    ["remainedCenter", "beforeCenter"],
+    ["remainedRight", "beforeRight"],
+  ].forEach(([sourceName, targetName]) => {
+    const sourceState = parseFuelNumberState(form.elements[sourceName].value, {
+      positive: false,
+    });
+    form.elements[targetName].value =
+      sourceState.empty || sourceState.invalid ? "" : String(sourceState.value);
+  });
+}
+
+function syncFuelDepartFromRequested() {
+  const requestedFuel = parseFuelNumberState(form.elements.requestedFuel.value, {
+    positive: false,
+    integer: true,
+  });
+  const fuelCapacity = getFuelCapacityForCurrentAircraft();
+  const distribution =
+    requestedFuel.empty ||
+    requestedFuel.invalid ||
+    requestedFuel.value > fuelCapacity.totalMax
+      ? null
+      : calculateRequestedFuelDistribution(requestedFuel.value, fuelCapacity);
+
+  form.elements.departLeft.value = distribution ? String(distribution.left) : "";
+  form.elements.departCenter.value = distribution ? String(distribution.center) : "";
+  form.elements.departRight.value = distribution ? String(distribution.right) : "";
+}
+
+function getFuelCapacityForCurrentAircraft() {
+  const aircraft = tripInfoGetB737AircraftData(
+    tripInfoB737Form.elements.aircraftId.value,
+    tripInfoB737Form.elements.aircraftRegistration.value
+  );
+
+  return FUEL_CAPACITY_BY_FAMILY[aircraft.family] || FUEL_CAPACITY_BY_FAMILY.NG;
+}
+
+function calculateRequestedFuelDistribution(requestedFuel, fuelCapacity) {
+  const combinedMainMax = fuelCapacity.mainTankMax * 2;
+
+  if (requestedFuel <= combinedMainMax) {
+    return {
+      left: Math.ceil(requestedFuel / 2),
+      center: 0,
+      right: Math.floor(requestedFuel / 2),
+    };
+  }
+
+  return {
+    left: fuelCapacity.mainTankMax,
+    center: requestedFuel - combinedMainMax,
+    right: fuelCapacity.mainTankMax,
+  };
 }
 
 function readArrivalFuelState(fuelState) {
@@ -1268,12 +1387,7 @@ function renderArrivalFuelCheck(fuelState) {
 
 function getFuelCheckStoredValues() {
   return {
-    beforeLeft: form.elements.beforeLeft.value,
-    beforeCenter: form.elements.beforeCenter.value,
-    beforeRight: form.elements.beforeRight.value,
-    departLeft: form.elements.departLeft.value,
-    departCenter: form.elements.departCenter.value,
-    departRight: form.elements.departRight.value,
+    requestedFuel: form.elements.requestedFuel.value,
     actualVolume: form.elements.actualVolume.value,
     volumeUnit: form.elements.volumeUnit.value,
     densityValue: form.elements.densityValue.value,
@@ -1309,6 +1423,17 @@ function restoreFuelCheckState() {
     }
 
     Object.entries(storedValues).forEach(([key, value]) => {
+      if (
+        key === "beforeLeft" ||
+        key === "beforeCenter" ||
+        key === "beforeRight" ||
+        key === "departLeft" ||
+        key === "departCenter" ||
+        key === "departRight"
+      ) {
+        return;
+      }
+
       const field = form.elements[key];
 
       if (!field || typeof value !== "string") {
@@ -3864,6 +3989,7 @@ function handleTripInfoB737FormInput(event) {
 
   if (target.name === "aircraftId" || target.name === "aircraftRegistration") {
     tripInfoB737ApplyAircraftSelection(target.value, true);
+    updateFuelCheck();
   }
 
   if (target.name === "from" || target.name === "to") {
@@ -3919,6 +4045,7 @@ function handleTripInfoB737FormChange(event) {
 
   if (target.name === "aircraftId" || target.name === "aircraftRegistration") {
     tripInfoB737ApplyAircraftSelection(target.value, true);
+    updateFuelCheck();
   }
 
   if (target.name === "from" || target.name === "to") {
