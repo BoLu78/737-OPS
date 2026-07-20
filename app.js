@@ -1,4 +1,4 @@
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.1";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1544,6 +1544,19 @@ function calculateFuelCheck(values) {
 
 function renderResults(result) {
   const stateLabel = result.pass ? "PASS" : "FAIL";
+  const comparisonRows = [
+    ["Actual Volume", formatFuelLiters(result.actualVolumeLiters)],
+    ["Calculated Fuel", formatFuelKg(result.calculatedKgs)],
+    ["Allowed Tolerance", `±${formatFuelInteger(result.tolerance)} kg`],
+  ];
+  const densityGuidance = getFuelDensityGuidance(result);
+
+  if (!result.pass && densityGuidance) {
+    comparisonRows.push(
+      ["Accepted Density Range", formatFuelDensityRange(densityGuidance.minimum, densityGuidance.maximum), true],
+      ["Nearest Valid Density", densityGuidance.nearestDisplay, true]
+    );
+  }
 
   banner.hidden = false;
   fuelResultSection.hidden = false;
@@ -1556,22 +1569,41 @@ function renderResults(result) {
     : "Receipt uplift is outside allowed tolerance";
   fuelResultSection.classList.toggle("fail", !result.pass);
 
-  renderKeyValueList(fuelResultsList, [
-    ["TLB Uplift", formatFuelKg(result.totalUplift)],
-    ["Calc. KGS", formatFuelKg(result.calculatedKgs)],
-    ["Difference", formatFuelSignedKg(result.differenceKg), !result.pass],
-    ["Abs Difference", formatFuelKg(result.absoluteDifferenceKg), !result.pass],
-    ["Allowed Tolerance", `+/-${formatFuelKg(result.tolerance)}`],
-  ]);
+  renderKeyValueList(fuelResultsList, comparisonRows);
+  fuelAdvancedList.textContent = "";
+  fuelAdvancedDetails.hidden = true;
+}
 
-  fuelAdvancedDetails.hidden = false;
-  renderKeyValueList(fuelAdvancedList, [
-    ["TLB Before", formatFuelKg(result.totalBefore)],
-    ["TLB Depart", formatFuelKg(result.totalDepart)],
-    ["TLB Crosscheck", formatFuelKg(result.totalUpliftCrosscheck)],
-    ["Volume in Litres", formatFuelLiters(result.actualVolumeLiters)],
-    ["Density kg/L", formatFuelDensityConverted(result.densityKgPerL)],
-  ]);
+function getFuelDensityGuidance(result) {
+  if (
+    result.pass ||
+    !Number.isFinite(result.totalUplift) ||
+    !Number.isFinite(result.actualVolumeLiters) ||
+    !Number.isFinite(result.tolerance) ||
+    !Number.isFinite(result.densityKgPerL) ||
+    result.actualVolumeLiters === 0
+  ) {
+    return null;
+  }
+
+  const minimumAcceptableFuel = result.totalUplift - result.tolerance;
+  const maximumAcceptableFuel = result.totalUplift + result.tolerance;
+  const minimum = minimumAcceptableFuel / result.actualVolumeLiters;
+  const maximum = maximumAcceptableFuel / result.actualVolumeLiters;
+  const nearest = result.densityKgPerL < minimum ? minimum : maximum;
+  const nearestDisplay =
+    result.densityUnit === "lb/US gal"
+      ? {
+          value: formatFuelDensityConverted(nearest),
+          note: `Equivalent: ${formatFuelDensityLbPerGallon(nearest)}`,
+        }
+      : formatFuelDensityConverted(nearest);
+
+  return {
+    minimum,
+    maximum,
+    nearestDisplay,
+  };
 }
 
 function normalizeNumericInput(value) {
@@ -5486,6 +5518,14 @@ function formatFuelSignedPercent(value) {
 
 function formatFuelDensityConverted(value) {
   return `${formatNumber(value, 4)} kg/L`;
+}
+
+function formatFuelDensityRange(minimum, maximum) {
+  return `${formatNumber(minimum, 4)} – ${formatNumber(maximum, 4)} kg/L`;
+}
+
+function formatFuelDensityLbPerGallon(value) {
+  return `${formatNumber((value * US_GALLON_TO_LITERS) / LBS_TO_KG, 4)} lb/US gal`;
 }
 
 function formatKg(value) {
