@@ -9,9 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f3efe4">
-    <meta name="app-version" content="2.5">
+    <meta name="app-version" content="2.6">
     <title>737 OPS</title>
-    <link rel="manifest" href="manifest.json?v=2.5">
+    <link rel="manifest" href="manifest.json?v=2.6">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
@@ -190,6 +190,11 @@
         box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.13);
       }
 
+      .input[aria-invalid="true"] {
+        border-color: rgba(194, 65, 75, 0.72);
+        background: rgba(194, 65, 75, 0.08);
+      }
+
       .number-input {
         font-family: var(--mono);
         font-variant-numeric: tabular-nums;
@@ -266,10 +271,139 @@
         }
       }
 
+      .fuel-table-wrap {
+        overflow-x: auto;
+        margin: 0 -4px;
+        padding: 0 4px;
+      }
+
+      .fuel-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .fuel-table th,
+      .fuel-table td {
+        padding: 7px 4px;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .fuel-table th {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fuel-table .fuel-tank-heading,
+      .fuel-table .fuel-tank-label {
+        width: 24%;
+        text-align: left;
+      }
+
+      .fuel-table .fuel-tank-label {
+        color: var(--text);
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+      }
+
+      .fuel-table .fuel-total-row th,
+      .fuel-table .fuel-total-row td {
+        border-top: 1px solid rgba(20, 31, 46, 0.14);
+        padding-top: 10px;
+      }
+
+      .fuel-table .input {
+        min-height: 46px;
+        padding: 10px 8px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 0.98rem;
+      }
+
+      .fuel-output {
+        min-height: 46px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(20, 31, 46, 0.12);
+        border-radius: 12px;
+        background: rgba(22, 59, 87, 0.06);
+        color: var(--accent-blue);
+        font-family: var(--mono);
+        font-size: 0.96rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .fuel-output.fuel-negative {
+        border-color: rgba(194, 65, 75, 0.38);
+        background: rgba(194, 65, 75, 0.10);
+        color: var(--fail);
+      }
+
+      .fuel-output.fuel-total-output {
+        background: rgba(245, 158, 11, 0.14);
+        color: var(--text);
+      }
+
+      .fuel-calculated-panel {
+        display: grid;
+        gap: 8px;
+        border: 1px solid rgba(20, 31, 46, 0.12);
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: rgba(22, 59, 87, 0.06);
+      }
+
+      .fuel-calculated-label {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fuel-calculated-value {
+        color: var(--accent-blue);
+        font-family: var(--mono);
+        font-size: 1.35rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .fuel-conversion-note {
+        min-height: 18px;
+        margin: 0;
+        color: var(--pass);
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .fuel-validation {
+        margin: 0;
+      }
+
+      .fuel-validation[hidden],
+      .results-banner[hidden],
+      .result-section[hidden] {
+        display: none;
+      }
+
       .actions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+      }
+
+      .actions.fuel-actions {
+        grid-template-columns: 1fr;
       }
 
       .button {
@@ -1049,7 +1183,7 @@
         <header class="hero">
           <div class="home-logo-wrap">
             <img class="home-logo" src="./assets/tripinfo-logo-neos.png" alt="">
-            <span class="home-version">v2.5</span>
+            <span class="home-version">v2.6</span>
           </div>
           <span class="eyebrow">OFFLINE B737 OPS TOOL</span>
           <h1>737 OPS</h1>
@@ -1088,7 +1222,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>Brake Cooling Correction</h1>
-            <span class="module-version-badge">2.5</span>
+            <span class="module-version-badge">2.6</span>
           </div>
           <p class="subtitle">Taxi correction from official cooling time</p>
         </header>
@@ -1191,7 +1325,7 @@
           <header class="hero fuel-header">
             <div class="module-header-row">
               <h1>FuelCk</h1>
-              <span class="module-version-badge">2.5</span>
+              <span class="module-version-badge">2.6</span>
             </div>
             <div class="card" id="toleranceCard">
               <h2>Tolerance Rule</h2>
@@ -1201,118 +1335,192 @@
 
           <form id="fuel-form" class="stack" novalidate>
             <div class="card stack">
+              <h2>TLB Fuel Data</h2>
+              <div class="fuel-table-wrap">
+                <table class="fuel-table" aria-label="TLB fuel data">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="fuel-tank-heading">Tank</th>
+                      <th scope="col">Before</th>
+                      <th scope="col">Uplift</th>
+                      <th scope="col">Depart</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row" class="fuel-tank-label">1/L</th>
+                      <td>
+                        <input
+                          id="fuel-before-left"
+                          name="beforeLeft"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                      <td><output id="fuel-uplift-left" class="fuel-output">--</output></td>
+                      <td>
+                        <input
+                          id="fuel-depart-left"
+                          name="departLeft"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row" class="fuel-tank-label">CTR</th>
+                      <td>
+                        <input
+                          id="fuel-before-center"
+                          name="beforeCenter"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                      <td><output id="fuel-uplift-center" class="fuel-output">--</output></td>
+                      <td>
+                        <input
+                          id="fuel-depart-center"
+                          name="departCenter"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row" class="fuel-tank-label">2/R</th>
+                      <td>
+                        <input
+                          id="fuel-before-right"
+                          name="beforeRight"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                      <td><output id="fuel-uplift-right" class="fuel-output">--</output></td>
+                      <td>
+                        <input
+                          id="fuel-depart-right"
+                          name="departRight"
+                          class="input number-input"
+                          type="text"
+                          inputmode="decimal"
+                          pattern="[0-9.,]*"
+                          autocomplete="off"
+                        >
+                      </td>
+                    </tr>
+                    <tr class="fuel-total-row">
+                      <th scope="row" class="fuel-tank-label">Total</th>
+                      <td><output id="fuel-total-before" class="fuel-output fuel-total-output">--</output></td>
+                      <td><output id="fuel-total-uplift" class="fuel-output fuel-total-output">--</output></td>
+                      <td><output id="fuel-total-depart" class="fuel-output fuel-total-output">--</output></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card stack">
+              <h2>Fuel Receipt / Uplift Check</h2>
               <div class="row two-col">
                 <div class="field">
-                  <label for="ramp-fuel">Ramp Fuel (kg)</label>
+                  <label for="actual-volume">Actual Volume</label>
                   <input
-                    id="ramp-fuel"
-                    name="rampFuel"
+                    id="actual-volume"
+                    name="actualVolume"
                     class="input number-input"
                     type="text"
                     inputmode="decimal"
                     pattern="[0-9.,]*"
                     autocomplete="off"
-                    required
                   >
+                  <p id="fuel-volume-converted" class="fuel-conversion-note"></p>
                 </div>
                 <div class="field">
-                  <label for="remaining-fuel">Remaining Fuel (kg)</label>
+                  <span class="field-title">Volume Unit</span>
+                  <div class="segmented" role="radiogroup" aria-label="Volume unit selector">
+                    <label>
+                      <input type="radio" name="volumeUnit" value="L" checked>
+                      <span class="segment">Litres (L)</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="volumeUnit" value="US gal">
+                      <span class="segment">US gal</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="row two-col">
+                <div class="field">
+                  <label for="density-value">Density</label>
                   <input
-                    id="remaining-fuel"
-                    name="remainingFuel"
+                    id="density-value"
+                    name="densityValue"
                     class="input number-input"
                     type="text"
                     inputmode="decimal"
                     pattern="[0-9.,]*"
                     autocomplete="off"
-                    required
                   >
+                  <p id="fuel-density-converted" class="fuel-conversion-note"></p>
                 </div>
+                <div class="field">
+                  <span class="field-title">Density Unit</span>
+                  <div class="segmented" role="radiogroup" aria-label="Density unit selector">
+                    <label>
+                      <input type="radio" name="densityUnit" value="kg/L" checked>
+                      <span class="segment">kg/L</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="densityUnit" value="lb/US gal">
+                      <span class="segment">lb/US gal</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="fuel-calculated-panel">
+                <span class="fuel-calculated-label">Calculated KGS</span>
+                <output id="fuel-calculated-kgs" class="fuel-calculated-value">--</output>
               </div>
             </div>
 
-            <div class="card stack">
-              <div class="field">
-                <span class="field-title">Unit selector</span>
-                <div class="segmented" role="radiogroup" aria-label="Density unit selector">
-                  <label>
-                    <input type="radio" name="densityUnit" value="kg/L" checked>
-                    <span class="segment">kg/L</span>
-                  </label>
-                  <label>
-                    <input type="radio" name="densityUnit" value="lbs/US gal">
-                    <span class="segment">lbs/US gal</span>
-                  </label>
-                </div>
-              </div>
-              <div class="field">
-                <label for="density-value">Value</label>
-                <input
-                  id="density-value"
-                  name="densityValue"
-                  class="input number-input"
-                  type="text"
-                  inputmode="decimal"
-                  pattern="[0-9.,]*"
-                  value="0.796"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-            </div>
+            <p id="fuel-validation-message" class="inline-message fuel-validation" hidden></p>
 
-            <div class="card stack">
-              <div class="field">
-                <span class="field-title">Volume unit</span>
-                <div class="segmented" role="radiogroup" aria-label="Volume unit selector">
-                  <label>
-                    <input type="radio" name="volumeUnit" value="Liters" checked>
-                    <span class="segment">Liters</span>
-                  </label>
-                  <label>
-                    <input type="radio" name="volumeUnit" value="US gallons">
-                    <span class="segment">US gallons</span>
-                  </label>
-                </div>
-              </div>
-              <div class="field">
-                <label for="actual-volume">Volume input</label>
-                <input
-                  id="actual-volume"
-                  name="actualVolume"
-                  class="input number-input"
-                  type="text"
-                  inputmode="decimal"
-                  pattern="[0-9.,]*"
-                  autocomplete="off"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="actions">
+            <div class="actions fuel-actions">
               <button class="button" type="button" id="clear-button">CLEAR</button>
-              <button class="button primary" type="submit">CHECK</button>
             </div>
+
+            <div id="results-banner" class="results-banner pass" aria-live="polite" hidden>
+              <p class="banner-label" id="banner-label">PASS</p>
+              <h2 class="banner-title" id="banner-title">PASS</h2>
+              <p class="banner-subtitle" id="banner-subtitle">Within tolerance</p>
+            </div>
+
+            <section class="card result-section" id="fuel-result-section" hidden>
+              <h3 class="result-card-title">Final Comparison</h3>
+              <div id="fuel-results-list" class="kv-list"></div>
+              <div id="fuel-advanced-details" class="advanced-details" hidden>
+                <h4 class="advanced-details-title">Check Values</h4>
+                <div id="fuel-advanced-list" class="kv-list"></div>
+              </div>
+            </section>
           </form>
-        </section>
-
-        <section class="screen" id="results-screen" hidden>
-          <div id="results-banner" class="results-banner fail" aria-live="polite">
-            <p class="banner-label" id="banner-label">FAIL</p>
-            <h2 class="banner-title" id="banner-title">B737</h2>
-            <p class="banner-subtitle" id="banner-subtitle">Outside tolerance</p>
-          </div>
-
-          <section class="card result-section" id="fuel-result-section">
-            <h3 class="result-card-title">Uplift Crosscheck</h3>
-            <div id="fuel-results-list" class="kv-list"></div>
-            <div id="fuel-advanced-details" class="advanced-details" hidden>
-              <h4 class="advanced-details-title">Advanced details</h4>
-              <div id="fuel-advanced-list" class="kv-list"></div>
-            </div>
-          </section>
-
         </section>
       </section>
 
@@ -1324,7 +1532,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>TRIP INFO B737</h1>
-            <span class="module-version-badge">2.5</span>
+            <span class="module-version-badge">2.6</span>
           </div>
         </header>
 
@@ -1837,7 +2045,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>VDP / VISIBILITY</h1>
-            <span class="module-version-badge">2.5</span>
+            <span class="module-version-badge">2.6</span>
           </div>
           <p class="subtitle">Non-precision approach visual segment advisory</p>
         </header>
@@ -1912,7 +2120,7 @@
         <header class="hero">
           <div class="module-header-row">
             <h1>ACN-PCN</h1>
-            <span class="module-version-badge">2.5</span>
+            <span class="module-version-badge">2.6</span>
           </div>
           <p class="subtitle">Pavement compatibility</p>
         </header>
@@ -2057,6 +2265,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=2.5" defer></script>
+    <script src="app.js?v=2.6" defer></script>
   </body>
 </html>

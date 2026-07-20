@@ -1,7 +1,7 @@
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
-const INVALID_ALERT_MESSAGE = "Invalid data: required uplift must be positive";
+const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
 const ACN_AIRCRAFT_DATA = {
   "B737 NG": {
     label: "B737 NG",
@@ -706,6 +706,18 @@ const fuelResultSection = document.getElementById("fuel-result-section");
 const fuelResultsList = document.getElementById("fuel-results-list");
 const fuelAdvancedDetails = document.getElementById("fuel-advanced-details");
 const fuelAdvancedList = document.getElementById("fuel-advanced-list");
+const fuelValidationMessage = document.getElementById("fuel-validation-message");
+const fuelVolumeConverted = document.getElementById("fuel-volume-converted");
+const fuelDensityConverted = document.getElementById("fuel-density-converted");
+const fuelCalculatedKgs = document.getElementById("fuel-calculated-kgs");
+const fuelOutputNodes = {
+  upliftLeft: document.getElementById("fuel-uplift-left"),
+  upliftCenter: document.getElementById("fuel-uplift-center"),
+  upliftRight: document.getElementById("fuel-uplift-right"),
+  totalBefore: document.getElementById("fuel-total-before"),
+  totalUplift: document.getElementById("fuel-total-uplift"),
+  totalDepart: document.getElementById("fuel-total-depart"),
+};
 const acnForm = document.getElementById("acn-form");
 const acnValidationMessage = document.getElementById("acn-validation-message");
 const acnClearButton = document.getElementById("acn-clear-button");
@@ -826,16 +838,19 @@ function attachEventListeners() {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    calculateAndRender();
+    updateFuelCheck();
   });
+
+  form.addEventListener("input", updateFuelCheck);
+  form.addEventListener("change", updateFuelCheck);
 
   clearButton.addEventListener("click", () => {
     form.reset();
     form.elements.densityUnit.value = "kg/L";
-    form.elements.volumeUnit.value = "Liters";
-    form.elements.densityValue.value = "0.796";
+    form.elements.volumeUnit.value = "L";
     updateToleranceText();
-    form.elements.rampFuel.focus();
+    updateFuelCheck();
+    form.elements.beforeLeft.focus();
   });
 
   tripInfoB737Form.addEventListener("submit", (event) => {
@@ -873,6 +888,7 @@ function attachEventListeners() {
 
 function initializeApp() {
   updateToleranceText();
+  updateFuelCheck();
   showHomeView();
   initializeAcnModule();
   initializeBrakeCoolingModule();
@@ -896,13 +912,12 @@ function calculateAndRender() {
   const parsed = readInputValues();
 
   if (!parsed) {
-    window.alert(INVALID_ALERT_MESSAGE);
+    updateFuelCheck();
     return;
   }
 
   const result = calculateFuelCheck(parsed);
   renderResults(result);
-  showResultsScreen();
 }
 
 function updateToleranceText() {
@@ -911,38 +926,293 @@ function updateToleranceText() {
 }
 
 function readInputValues() {
-  const aircraft = "B737";
-  const densityUnit = form.elements.densityUnit.value;
-  const volumeUnit = form.elements.volumeUnit.value;
-  const rampFuel = parseNonNegativeNumber(form.elements.rampFuel.value);
-  const remainingFuel = parseNonNegativeNumber(form.elements.remainingFuel.value);
-  const densityValue = parsePositiveNumber(form.elements.densityValue.value);
-  const actualVolume = parseNonNegativeNumber(form.elements.actualVolume.value);
+  const state = readFuelCheckState();
 
-  if (
-    rampFuel === null ||
-    remainingFuel === null ||
-    densityValue === null ||
-    actualVolume === null
-  ) {
+  if (!state.canCompare) {
     return null;
   }
 
-  const requiredUpliftKg = rampFuel - remainingFuel;
+  return state.values;
+}
 
-  if (requiredUpliftKg <= 0) {
-    return null;
+function readFuelCheckState() {
+  const densityUnit = form.elements.densityUnit.value;
+  const volumeUnit = form.elements.volumeUnit.value;
+  const tanks = [
+    {
+      key: "left",
+      beforeField: form.elements.beforeLeft,
+      departField: form.elements.departLeft,
+      upliftNode: fuelOutputNodes.upliftLeft,
+    },
+    {
+      key: "center",
+      beforeField: form.elements.beforeCenter,
+      departField: form.elements.departCenter,
+      upliftNode: fuelOutputNodes.upliftCenter,
+    },
+    {
+      key: "right",
+      beforeField: form.elements.beforeRight,
+      departField: form.elements.departRight,
+      upliftNode: fuelOutputNodes.upliftRight,
+    },
+  ];
+  const parsedTanks = tanks.map((tank) => {
+    const before = parseFuelNumberState(tank.beforeField.value, { positive: false });
+    const depart = parseFuelNumberState(tank.departField.value, { positive: false });
+    const uplift =
+      before.value !== null && depart.value !== null ? depart.value - before.value : null;
+
+    return {
+      ...tank,
+      before,
+      depart,
+      uplift,
+    };
+  });
+  const actualVolume = parseFuelNumberState(form.elements.actualVolume.value, {
+    positive: true,
+  });
+  const densityValue = parseFuelNumberState(form.elements.densityValue.value, {
+    positive: true,
+  });
+  const beforeValues = parsedTanks.map((tank) => tank.before.value);
+  const departValues = parsedTanks.map((tank) => tank.depart.value);
+  const upliftValues = parsedTanks.map((tank) => tank.uplift);
+  const totalBefore = beforeValues.every((value) => value !== null)
+    ? beforeValues.reduce((sum, value) => sum + value, 0)
+    : null;
+  const totalDepart = departValues.every((value) => value !== null)
+    ? departValues.reduce((sum, value) => sum + value, 0)
+    : null;
+  const totalUplift = upliftValues.every((value) => value !== null)
+    ? upliftValues.reduce((sum, value) => sum + value, 0)
+    : null;
+  const totalUpliftCrosscheck =
+    totalBefore !== null && totalDepart !== null ? totalDepart - totalBefore : null;
+  const densityKgPerL =
+    densityValue.value === null
+      ? null
+      : densityUnit === "kg/L"
+        ? densityValue.value
+        : (densityValue.value * LBS_TO_KG) / US_GALLON_TO_LITERS;
+  const actualVolumeLiters =
+    actualVolume.value === null
+      ? null
+      : volumeUnit === "L"
+        ? actualVolume.value
+        : actualVolume.value * US_GALLON_TO_LITERS;
+  const calculatedKgs =
+    actualVolumeLiters !== null && densityKgPerL !== null
+      ? actualVolumeLiters * densityKgPerL
+      : null;
+  const hasIncompleteFields =
+    parsedTanks.some((tank) => tank.before.empty || tank.depart.empty) ||
+    actualVolume.empty ||
+    densityValue.empty;
+  const hasInvalidFields =
+    parsedTanks.some((tank) => tank.before.invalid || tank.depart.invalid) ||
+    actualVolume.invalid ||
+    densityValue.invalid;
+  const hasNegativeTankUplift = parsedTanks.some(
+    (tank) => tank.uplift !== null && tank.uplift < 0
+  );
+  const hasPositiveTlbUplift = totalUplift !== null && totalUplift > 0;
+  const totalUpliftMatchesDepartMinusBefore =
+    totalUplift !== null &&
+    totalUpliftCrosscheck !== null &&
+    Math.abs(totalUplift - totalUpliftCrosscheck) < 0.000001;
+  const errors = [];
+
+  if (hasInvalidFields) {
+    errors.push("Enter valid positive receipt values and non-negative tank values.");
+  }
+
+  if (hasNegativeTankUplift) {
+    errors.push("Review tank uplift: Depart is lower than Before for one or more tanks.");
+  }
+
+  if (!hasIncompleteFields && !hasInvalidFields && !hasPositiveTlbUplift) {
+    errors.push("TLB Total Uplift must be greater than zero.");
+  }
+
+  if (
+    !hasIncompleteFields &&
+    !hasInvalidFields &&
+    !totalUpliftMatchesDepartMinusBefore
+  ) {
+    errors.push("TLB Total Uplift does not match Total Depart minus Total Before.");
   }
 
   return {
-    aircraft,
-    rampFuel,
-    remainingFuel,
-    densityUnit,
-    densityValue,
-    volumeUnit,
-    actualVolume,
+    tanks: parsedTanks,
+    hasIncompleteFields,
+    errors,
+    canCompare:
+      !hasIncompleteFields &&
+      errors.length === 0 &&
+      calculatedKgs !== null &&
+      totalUplift !== null,
+    values: {
+      densityUnit,
+      volumeUnit,
+      actualVolumeState: actualVolume,
+      actualVolume: actualVolume.value,
+      actualVolumeLiters,
+      densityValueState: densityValue,
+      densityValue: densityValue.value,
+      densityKgPerL,
+      calculatedKgs,
+      totalBefore,
+      totalDepart,
+      totalUplift,
+      totalUpliftCrosscheck,
+    },
   };
+}
+
+function parseFuelNumberState(value, { positive }) {
+  const normalizedValue = normalizeNumericInput(value);
+
+  if (normalizedValue === null) {
+    return {
+      value: null,
+      empty: true,
+      invalid: false,
+    };
+  }
+
+  const parsed = Number(normalizedValue);
+  const invalid = !Number.isFinite(parsed) || parsed < 0 || (positive && parsed <= 0);
+
+  return {
+    value: invalid ? null : parsed,
+    empty: false,
+    invalid,
+  };
+}
+
+function updateFuelCheck() {
+  const state = readFuelCheckState();
+  renderFuelCheckInputs(state);
+
+  if (!state.canCompare) {
+    banner.hidden = true;
+    fuelResultSection.hidden = true;
+    fuelResultSection.classList.remove("fail");
+    fuelResultsList.textContent = "";
+    fuelAdvancedList.textContent = "";
+    fuelAdvancedDetails.hidden = true;
+
+    if (state.errors.length > 0) {
+      fuelValidationMessage.hidden = false;
+      fuelValidationMessage.textContent = state.errors.join(" ");
+    } else {
+      fuelValidationMessage.hidden = true;
+      fuelValidationMessage.textContent = "";
+    }
+
+    return;
+  }
+
+  fuelValidationMessage.hidden = true;
+  fuelValidationMessage.textContent = "";
+  renderResults(calculateFuelCheck(state.values));
+}
+
+function renderFuelCheckInputs(state) {
+  state.tanks.forEach((tank) => {
+    setFuelFieldValidity(tank.beforeField, tank.before.invalid);
+    setFuelFieldValidity(tank.departField, tank.depart.invalid);
+    renderFuelOutput(tank.upliftNode, tank.uplift, {
+      negative: tank.uplift !== null && tank.uplift < 0,
+    });
+  });
+
+  renderFuelOutput(fuelOutputNodes.totalBefore, state.values.totalBefore, {
+    total: true,
+  });
+  renderFuelOutput(fuelOutputNodes.totalDepart, state.values.totalDepart, {
+    total: true,
+  });
+  renderFuelOutput(fuelOutputNodes.totalUplift, state.values.totalUplift, {
+    total: true,
+    negative: state.values.totalUplift !== null && state.values.totalUplift < 0,
+  });
+  setFuelFieldValidity(form.elements.actualVolume, state.values.actualVolumeState.invalid);
+  setFuelFieldValidity(form.elements.densityValue, state.values.densityValueState.invalid);
+
+  fuelVolumeConverted.textContent =
+    state.values.actualVolumeLiters === null
+      ? ""
+      : state.values.volumeUnit === "US gal"
+        ? `Converted Volume: ${formatFuelLiters(state.values.actualVolumeLiters)}`
+        : `Volume: ${formatFuelLiters(state.values.actualVolumeLiters)}`;
+  fuelDensityConverted.textContent =
+    state.values.densityKgPerL === null
+      ? ""
+      : state.values.densityUnit === "lb/US gal"
+        ? `Converted Density: ${formatFuelDensityConverted(state.values.densityKgPerL)}`
+        : `Density: ${formatFuelDensityConverted(state.values.densityKgPerL)}`;
+  fuelCalculatedKgs.textContent =
+    state.values.calculatedKgs === null ? "--" : formatFuelKg(state.values.calculatedKgs);
+}
+
+function setFuelFieldValidity(field, invalid) {
+  field.toggleAttribute("aria-invalid", invalid);
+}
+
+function renderFuelOutput(node, value, { negative = false } = {}) {
+  node.textContent = value === null ? "--" : formatFuelInteger(value);
+  node.classList.toggle("fuel-negative", negative);
+}
+
+function calculateFuelCheck(values) {
+  const tolerance = Math.max(0.03 * values.totalUplift, 200);
+  const differenceKg = values.calculatedKgs - values.totalUplift;
+  const absoluteDifferenceKg = Math.abs(differenceKg);
+  const pass = absoluteDifferenceKg <= tolerance;
+
+  return {
+    ...values,
+    differenceKg,
+    absoluteDifferenceKg,
+    tolerance,
+    pass,
+  };
+}
+
+function renderResults(result) {
+  const stateLabel = result.pass ? "PASS" : "FAIL";
+
+  banner.hidden = false;
+  fuelResultSection.hidden = false;
+  banner.classList.toggle("pass", result.pass);
+  banner.classList.toggle("fail", !result.pass);
+  bannerLabel.textContent = stateLabel;
+  bannerTitle.textContent = stateLabel;
+  bannerSubtitle.textContent = result.pass
+    ? "Receipt uplift is within allowed tolerance"
+    : "Receipt uplift is outside allowed tolerance";
+  fuelResultSection.classList.toggle("fail", !result.pass);
+
+  renderKeyValueList(fuelResultsList, [
+    ["TLB Uplift", formatFuelKg(result.totalUplift)],
+    ["Calc. KGS", formatFuelKg(result.calculatedKgs)],
+    ["Difference", formatFuelSignedKg(result.differenceKg), !result.pass],
+    ["Abs Difference", formatFuelKg(result.absoluteDifferenceKg), !result.pass],
+    ["Allowed Tolerance", `+/-${formatFuelKg(result.tolerance)}`],
+  ]);
+
+  fuelAdvancedDetails.hidden = false;
+  renderKeyValueList(fuelAdvancedList, [
+    ["TLB Before", formatFuelKg(result.totalBefore)],
+    ["TLB Depart", formatFuelKg(result.totalDepart)],
+    ["TLB Crosscheck", formatFuelKg(result.totalUpliftCrosscheck)],
+    ["Volume in Litres", formatFuelLiters(result.actualVolumeLiters)],
+    ["Density kg/L", formatFuelDensityConverted(result.densityKgPerL)],
+  ]);
 }
 
 function normalizeNumericInput(value) {
@@ -975,119 +1245,6 @@ function parsePositiveNumber(value) {
     return null;
   }
   return parsed;
-}
-
-function calculateFuelCheck(values) {
-  const requiredUpliftKg = values.rampFuel - values.remainingFuel;
-  const densityKgPerL =
-    values.densityUnit === "kg/L"
-      ? values.densityValue
-      : (values.densityValue * LBS_TO_KG) / US_GALLON_TO_LITERS;
-  const actualVolumeLiters =
-    values.volumeUnit === "Liters"
-      ? values.actualVolume
-      : values.actualVolume * US_GALLON_TO_LITERS;
-  const actualUpliftKg = actualVolumeLiters * densityKgPerL;
-  const totalFuelLoaded = values.remainingFuel + actualUpliftKg;
-  const weightDifference = totalFuelLoaded - values.rampFuel;
-  const minKg = 200;
-
-  const tolerance = Math.max(0.03 * requiredUpliftKg, minKg);
-  const pass = Math.abs(actualUpliftKg - requiredUpliftKg) <= tolerance;
-  const requiredVolumeLiters = requiredUpliftKg / densityKgPerL;
-  const volumeDifferenceLiters = actualVolumeLiters - requiredVolumeLiters;
-  const volumeMinLiters = Math.max(0, (requiredUpliftKg - tolerance) / densityKgPerL);
-  const volumeMaxLiters = (requiredUpliftKg + tolerance) / densityKgPerL;
-
-  return {
-    ...values,
-    requiredUpliftKg,
-    densityKgPerL,
-    actualVolumeLiters,
-    actualUpliftKg,
-    totalFuelLoaded,
-    weightDifference,
-    tolerance,
-    pass,
-    requiredVolumeLiters,
-    volumeDifferenceLiters,
-    volumeMinLiters,
-    volumeMaxLiters,
-    weightRangeMinKg: Math.max(0, requiredUpliftKg - tolerance),
-    weightRangeMaxKg: requiredUpliftKg + tolerance,
-  };
-}
-
-function renderResults(result) {
-  const stateLabel = result.pass ? "PASS" : "FAIL";
-  const upliftDifferenceKg = result.actualUpliftKg - result.requiredUpliftKg;
-  const upliftDifferencePercent = percentage(
-    upliftDifferenceKg,
-    result.requiredUpliftKg
-  );
-
-  banner.classList.toggle("pass", result.pass);
-  banner.classList.toggle("fail", !result.pass);
-  bannerLabel.textContent = stateLabel;
-  bannerTitle.textContent = `${stateLabel} • ${result.aircraft}`;
-  bannerSubtitle.textContent = result.pass
-    ? "Actual uplift is within allowed tolerance"
-    : "Actual uplift is outside allowed tolerance";
-  fuelResultSection.classList.toggle("fail", !result.pass);
-
-  const mainRows = [
-    ["Planned Fuel", formatFuelKg(result.requiredUpliftKg)],
-    ["Calc Fuel", formatFuelKg(result.actualUpliftKg)],
-    [
-      "Difference",
-      `${formatFuelSignedKg(upliftDifferenceKg)} (${formatFuelSignedPercent(
-        upliftDifferencePercent
-      )})`,
-      !result.pass,
-    ],
-    ["Tolerance", formatFuelKg(result.tolerance)],
-  ];
-
-  if (result.densityUnit === "lbs/US gal") {
-    mainRows.push([
-      "Density Converted",
-      formatFuelDensityConverted(result.densityKgPerL),
-      false,
-      "fuel-converted-row",
-      "fuel-converted-value",
-    ]);
-  }
-
-  if (result.volumeUnit === "US gallons") {
-    mainRows.push([
-      "Volume Converted",
-      formatFuelLiters(result.actualVolumeLiters),
-      false,
-      "fuel-converted-row",
-      "fuel-converted-value",
-    ]);
-  }
-
-  renderKeyValueList(fuelResultsList, mainRows);
-
-  fuelAdvancedDetails.hidden = result.pass;
-
-  if (result.pass) {
-    fuelAdvancedList.textContent = "";
-    return;
-  }
-
-  renderKeyValueList(fuelAdvancedList, [
-    [
-      "Allowed min / max",
-      `${formatFuelKg(result.weightRangeMinKg)} / ${formatFuelKg(result.weightRangeMaxKg)}`,
-    ],
-    [
-      "Volume range",
-      `${formatFuelLiters(result.volumeMinLiters)} / ${formatFuelLiters(result.volumeMaxLiters)}`,
-    ],
-    ["Percent difference", formatFuelSignedPercent(upliftDifferencePercent)],
-  ]);
 }
 
 function renderKeyValueList(container, rows) {
@@ -2107,13 +2264,20 @@ function highlightAcnMaxAllowableRow(acnBand) {
 }
 
 function showResultsScreen() {
+  if (!resultsScreen) {
+    window.scrollTo(0, 0);
+    return;
+  }
+
   inputScreen.hidden = true;
   resultsScreen.hidden = false;
   window.scrollTo(0, 0);
 }
 
 function showInputScreen() {
-  resultsScreen.hidden = true;
+  if (resultsScreen) {
+    resultsScreen.hidden = true;
+  }
   inputScreen.hidden = false;
   window.scrollTo(0, 0);
 }
@@ -4962,7 +5126,7 @@ function formatFuelSignedPercent(value) {
 }
 
 function formatFuelDensityConverted(value) {
-  return `${formatNumber(value, 3)} kg/L`;
+  return `${formatNumber(value, 4)} kg/L`;
 }
 
 function formatKg(value) {
