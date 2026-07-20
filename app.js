@@ -1,7 +1,8 @@
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
+const FUEL_STORAGE_KEY = "737OpsFuelState";
 const ACN_AIRCRAFT_DATA = {
   "B737 NG": {
     label: "B737 NG",
@@ -710,6 +711,10 @@ const fuelValidationMessage = document.getElementById("fuel-validation-message")
 const fuelVolumeConverted = document.getElementById("fuel-volume-converted");
 const fuelDensityConverted = document.getElementById("fuel-density-converted");
 const fuelCalculatedKgs = document.getElementById("fuel-calculated-kgs");
+const fuelArrivalReconciliation = document.getElementById("fuel-arrival-reconciliation");
+const fuelArrivalReconciliationList = document.getElementById(
+  "fuel-arrival-reconciliation-list"
+);
 const fuelOutputNodes = {
   upliftLeft: document.getElementById("fuel-uplift-left"),
   upliftCenter: document.getElementById("fuel-uplift-center"),
@@ -717,6 +722,8 @@ const fuelOutputNodes = {
   totalBefore: document.getElementById("fuel-total-before"),
   totalUplift: document.getElementById("fuel-total-uplift"),
   totalDepart: document.getElementById("fuel-total-depart"),
+  burnedTotal: document.getElementById("fuel-burned-total"),
+  remainedTotal: document.getElementById("fuel-remained-total"),
 };
 const acnForm = document.getElementById("acn-form");
 const acnValidationMessage = document.getElementById("acn-validation-message");
@@ -848,8 +855,9 @@ function attachEventListeners() {
     form.reset();
     form.elements.densityUnit.value = "kg/L";
     form.elements.volumeUnit.value = "L";
+    clearFuelCheckStoredState();
     updateToleranceText();
-    updateFuelCheck();
+    updateFuelCheck({ persist: false });
     form.elements.beforeLeft.focus();
   });
 
@@ -888,7 +896,8 @@ function attachEventListeners() {
 
 function initializeApp() {
   updateToleranceText();
-  updateFuelCheck();
+  restoreFuelCheckState();
+  updateFuelCheck({ persist: false });
   showHomeView();
   initializeAcnModule();
   initializeBrakeCoolingModule();
@@ -1093,9 +1102,14 @@ function parseFuelNumberState(value, { positive }) {
   };
 }
 
-function updateFuelCheck() {
+function updateFuelCheck({ persist = true } = {}) {
   const state = readFuelCheckState();
   renderFuelCheckInputs(state);
+  renderArrivalFuelCheck(state);
+
+  if (persist) {
+    saveFuelCheckState();
+  }
 
   if (!state.canCompare) {
     banner.hidden = true;
@@ -1157,6 +1171,163 @@ function renderFuelCheckInputs(state) {
         : `Density: ${formatFuelDensityConverted(state.values.densityKgPerL)}`;
   fuelCalculatedKgs.textContent =
     state.values.calculatedKgs === null ? "--" : formatFuelKg(state.values.calculatedKgs);
+}
+
+function readArrivalFuelState(fuelState) {
+  const burnedLeft = parseFuelNumberState(form.elements.burnedLeft.value, {
+    positive: false,
+  });
+  const burnedRight = parseFuelNumberState(form.elements.burnedRight.value, {
+    positive: false,
+  });
+  const remainedLeft = parseFuelNumberState(form.elements.remainedLeft.value, {
+    positive: false,
+  });
+  const remainedCenter = parseFuelNumberState(form.elements.remainedCenter.value, {
+    positive: false,
+  });
+  const remainedRight = parseFuelNumberState(form.elements.remainedRight.value, {
+    positive: false,
+  });
+  const burnedValues = [burnedLeft, burnedRight];
+  const remainedValues = [remainedLeft, remainedCenter, remainedRight];
+  const totalBurned = burnedValues.every((field) => !field.empty && !field.invalid)
+    ? burnedValues.reduce((sum, field) => sum + field.value, 0)
+    : null;
+  const totalRemained = remainedValues.every((field) => !field.empty && !field.invalid)
+    ? remainedValues.reduce((sum, field) => sum + field.value, 0)
+    : null;
+  const departFuel = fuelState.values.totalDepart;
+  const expectedRemained =
+    departFuel !== null && totalBurned !== null ? departFuel - totalBurned : null;
+  const difference =
+    expectedRemained !== null && totalRemained !== null
+      ? totalRemained - expectedRemained
+      : null;
+
+  return {
+    fields: {
+      burnedLeft,
+      burnedRight,
+      remainedLeft,
+      remainedCenter,
+      remainedRight,
+    },
+    totalBurned,
+    totalRemained,
+    departFuel,
+    expectedRemained,
+    difference,
+    canCrosscheck:
+      departFuel !== null &&
+      totalBurned !== null &&
+      totalRemained !== null &&
+      !burnedValues.some((field) => field.invalid) &&
+      !remainedValues.some((field) => field.invalid),
+  };
+}
+
+function renderArrivalFuelCheck(fuelState) {
+  const arrivalState = readArrivalFuelState(fuelState);
+
+  setFuelFieldValidity(form.elements.burnedLeft, arrivalState.fields.burnedLeft.invalid);
+  setFuelFieldValidity(form.elements.burnedRight, arrivalState.fields.burnedRight.invalid);
+  setFuelFieldValidity(form.elements.remainedLeft, arrivalState.fields.remainedLeft.invalid);
+  setFuelFieldValidity(
+    form.elements.remainedCenter,
+    arrivalState.fields.remainedCenter.invalid
+  );
+  setFuelFieldValidity(form.elements.remainedRight, arrivalState.fields.remainedRight.invalid);
+  renderFuelOutput(fuelOutputNodes.burnedTotal, arrivalState.totalBurned);
+  renderFuelOutput(fuelOutputNodes.remainedTotal, arrivalState.totalRemained);
+
+  if (!arrivalState.canCrosscheck) {
+    fuelArrivalReconciliation.hidden = true;
+    fuelArrivalReconciliationList.textContent = "";
+    return;
+  }
+
+  const displayedDifference = Math.round(arrivalState.difference);
+  const differenceRowClass =
+    displayedDifference === 0 ? "fuel-difference-zero" : "fuel-difference-highlight";
+
+  fuelArrivalReconciliation.hidden = false;
+  renderKeyValueList(fuelArrivalReconciliationList, [
+    ["Depart Fuel", formatFuelKg(arrivalState.departFuel)],
+    ["Total Fuel Burned", formatFuelKg(arrivalState.totalBurned)],
+    ["Expected Remained", formatFuelKg(arrivalState.expectedRemained)],
+    ["Actual Remained", formatFuelKg(arrivalState.totalRemained)],
+    [
+      "Difference",
+      formatFuelSignedKg(arrivalState.difference),
+      false,
+      differenceRowClass,
+    ],
+  ]);
+}
+
+function getFuelCheckStoredValues() {
+  return {
+    beforeLeft: form.elements.beforeLeft.value,
+    beforeCenter: form.elements.beforeCenter.value,
+    beforeRight: form.elements.beforeRight.value,
+    departLeft: form.elements.departLeft.value,
+    departCenter: form.elements.departCenter.value,
+    departRight: form.elements.departRight.value,
+    actualVolume: form.elements.actualVolume.value,
+    volumeUnit: form.elements.volumeUnit.value,
+    densityValue: form.elements.densityValue.value,
+    densityUnit: form.elements.densityUnit.value,
+    burnedLeft: form.elements.burnedLeft.value,
+    burnedRight: form.elements.burnedRight.value,
+    remainedLeft: form.elements.remainedLeft.value,
+    remainedCenter: form.elements.remainedCenter.value,
+    remainedRight: form.elements.remainedRight.value,
+  };
+}
+
+function saveFuelCheckState() {
+  try {
+    localStorage.setItem(FUEL_STORAGE_KEY, JSON.stringify(getFuelCheckStoredValues()));
+  } catch {
+    // Keep the app stable if storage is unavailable.
+  }
+}
+
+function restoreFuelCheckState() {
+  try {
+    const rawState = localStorage.getItem(FUEL_STORAGE_KEY);
+
+    if (!rawState) {
+      return;
+    }
+
+    const storedValues = JSON.parse(rawState);
+
+    if (!storedValues || typeof storedValues !== "object") {
+      return;
+    }
+
+    Object.entries(storedValues).forEach(([key, value]) => {
+      const field = form.elements[key];
+
+      if (!field || typeof value !== "string") {
+        return;
+      }
+
+      field.value = value;
+    });
+  } catch {
+    // Ignore malformed stored data and keep the module usable.
+  }
+}
+
+function clearFuelCheckStoredState() {
+  try {
+    localStorage.removeItem(FUEL_STORAGE_KEY);
+  } catch {
+    // Ignore storage removal issues to preserve app stability.
+  }
 }
 
 function setFuelFieldValidity(field, invalid) {
