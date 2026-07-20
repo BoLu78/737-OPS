@@ -1,4 +1,4 @@
-const APP_VERSION = "3.1";
+const APP_VERSION = "3.2";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1065,12 +1065,14 @@ function readFuelCheckState() {
     : null;
   const totalUpliftCrosscheck =
     totalBefore !== null && totalDepart !== null ? totalDepart - totalBefore : null;
+  const normalizedDensityValue =
+    densityValue.value === null ? null : normalizeFuelDensityValue(densityValue.value, densityUnit);
   const densityKgPerL =
-    densityValue.value === null
+    normalizedDensityValue === null
       ? null
       : densityUnit === "kg/L"
-        ? densityValue.value
-        : (densityValue.value * LBS_TO_KG) / US_GALLON_TO_LITERS;
+        ? normalizedDensityValue
+        : (normalizedDensityValue * LBS_TO_KG) / US_GALLON_TO_LITERS;
   const actualVolumeLiters =
     actualVolume.value === null
       ? null
@@ -1220,6 +1222,10 @@ function parseFuelNumberState(value, { positive, integer = false }) {
     empty: false,
     invalid,
   };
+}
+
+function normalizeFuelDensityValue(value, densityUnit) {
+  return densityUnit === "kg/L" && value >= 100 ? value / 1000 : value;
 }
 
 function updateFuelCheck({ persist = true } = {}) {
