@@ -1,4 +1,4 @@
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
