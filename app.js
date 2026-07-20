@@ -1160,7 +1160,12 @@ function renderFuelCheckInputs(state) {
 }
 
 function setFuelFieldValidity(field, invalid) {
-  field.toggleAttribute("aria-invalid", invalid);
+  if (invalid) {
+    field.setAttribute("aria-invalid", "true");
+    return;
+  }
+
+  field.removeAttribute("aria-invalid");
 }
 
 function renderFuelOutput(node, value, { negative = false } = {}) {
