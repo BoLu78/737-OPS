@@ -1,4 +1,4 @@
-const APP_VERSION = "3.2";
+const APP_VERSION = "3.3";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -803,9 +803,38 @@ let tripInfoLogoDataUrl = "";
 let tripInfoB737SignaturePointerId = null;
 let tripInfoB737SignatureDrawing = false;
 
-registerServiceWorker();
-attachEventListeners();
-initializeApp();
+bootstrapApp();
+
+function bootstrapApp() {
+  try {
+    attachEventListeners();
+    initializeApp();
+    registerServiceWorker();
+    document.documentElement.dataset.appReady = "true";
+  } catch (error) {
+    console.error("737 OPS startup failed:", error);
+    showStartupRecovery(error);
+  }
+}
+
+function showStartupRecovery(error) {
+  document.querySelectorAll(".app-view").forEach((view) => {
+    const isHome = view.id === "homeView";
+    view.hidden = !isHome;
+    view.setAttribute("aria-hidden", isHome ? "false" : "true");
+  });
+
+  if (!homeView || document.getElementById("startup-error-message")) {
+    return;
+  }
+
+  const message = document.createElement("p");
+  message.id = "startup-error-message";
+  message.className = "inline-message";
+  message.textContent = "Startup recovery activated. Close and reopen the app. If the problem continues, clear the website data and reinstall the app.";
+  homeView.appendChild(message);
+}
+
 
 function attachEventListeners() {
   openFuelBtn.addEventListener("click", () => {
@@ -937,10 +966,16 @@ function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        `./service-worker.js?v=${APP_VERSION}`,
+        { updateViaCache: "none" }
+      );
+      await registration.update();
+    } catch (error) {
       console.warn("Service worker registration failed:", error);
-    });
+    }
   });
 }
 
