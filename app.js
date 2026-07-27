@@ -1,4 +1,4 @@
-const APP_VERSION = "3.3";
+const APP_VERSION = "3.4";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -802,14 +802,15 @@ let fuelManualOverrides = {
 let tripInfoLogoDataUrl = "";
 let tripInfoB737SignaturePointerId = null;
 let tripInfoB737SignatureDrawing = false;
+const initializedModules = new Set();
 
 bootstrapApp();
 
 function bootstrapApp() {
   try {
-    attachEventListeners();
+    attachHomeEventListeners();
     initializeApp();
-    registerServiceWorker();
+    scheduleServiceWorkerRegistration();
     document.documentElement.dataset.appReady = "true";
   } catch (error) {
     console.error("737 OPS startup failed:", error);
@@ -836,66 +837,50 @@ function showStartupRecovery(error) {
 }
 
 
-function attachEventListeners() {
+function attachHomeEventListeners() {
   openFuelBtn.addEventListener("click", () => {
+    initializeModuleOnce("fuel", initializeFuelModule);
     showInputScreen();
     showFuelView();
   });
 
   openAcnBtn.addEventListener("click", () => {
+    initializeModuleOnce("acn", initializeAcnModule);
     showAcnView();
     clearAcnModule();
   });
 
   openBrakeCoolingBtn.addEventListener("click", () => {
+    initializeModuleOnce("brakeCooling", initializeBrakeCoolingModule);
     showBrakeCoolingView();
   });
 
   openTripInfoBtn.addEventListener("click", () => {
-    tripInfoB737RestoreState();
+    const initializedNow = initializeModuleOnce("tripInfo", initializeTripInfoB737Module);
+    if (!initializedNow) {
+      tripInfoB737RestoreState();
+    }
     showTripInfoB737View();
   });
 
   openVdpBtn.addEventListener("click", () => {
+    initializeModuleOnce("vdp", initializeVdpModule);
     showVdpView();
   });
+}
 
-  backFromBrakeCoolingBtn.addEventListener("click", showHomeView);
+function initializeModuleOnce(moduleName, initializer) {
+  if (initializedModules.has(moduleName)) {
+    return false;
+  }
+
+  initializer();
+  initializedModules.add(moduleName);
+  return true;
+}
+
+function initializeFuelModule() {
   backFromFuelBtn.addEventListener("click", showHomeView);
-  backFromAcnBtn.addEventListener("click", showHomeView);
-  backFromTripInfoB737Btn.addEventListener("click", showHomeView);
-  backFromVdpBtn.addEventListener("click", showHomeView);
-
-  acnForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    evaluateAcnModule();
-  });
-
-  acnClearButton.addEventListener("click", clearAcnModule);
-
-  brakeCoolingForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    evaluateBrakeCoolingModule();
-  });
-
-  brakeCoolingForm.addEventListener("input", clearBrakeCoolingValidation);
-  brakeCoolingForm.addEventListener("change", clearBrakeCoolingValidation);
-
-  brakeCoolingClearButton.addEventListener("click", () => {
-    resetBrakeCoolingModule(true);
-  });
-
-  vdpForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    evaluateVdpModule();
-  });
-
-  vdpForm.addEventListener("input", handleVdpFormChange);
-  vdpForm.addEventListener("change", handleVdpFormChange);
-
-  vdpClearButton.addEventListener("click", () => {
-    resetVdpModule(true);
-  });
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -916,6 +901,57 @@ function attachEventListeners() {
     updateFuelCheck({ persist: false });
     form.elements.burnedLeft.focus();
   });
+
+  updateToleranceText();
+  restoreFuelCheckState();
+  updateFuelCheck({ persist: false });
+}
+
+function attachAcnEventListeners() {
+  backFromAcnBtn.addEventListener("click", showHomeView);
+
+  acnForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateAcnModule();
+  });
+
+  acnClearButton.addEventListener("click", clearAcnModule);
+}
+
+function attachBrakeCoolingEventListeners() {
+  backFromBrakeCoolingBtn.addEventListener("click", showHomeView);
+
+  brakeCoolingForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateBrakeCoolingModule();
+  });
+
+  brakeCoolingForm.addEventListener("input", clearBrakeCoolingValidation);
+  brakeCoolingForm.addEventListener("change", clearBrakeCoolingValidation);
+
+  brakeCoolingClearButton.addEventListener("click", () => {
+    resetBrakeCoolingModule(true);
+  });
+}
+
+function attachVdpEventListeners() {
+  backFromVdpBtn.addEventListener("click", showHomeView);
+
+  vdpForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateVdpModule();
+  });
+
+  vdpForm.addEventListener("input", handleVdpFormChange);
+  vdpForm.addEventListener("change", handleVdpFormChange);
+
+  vdpClearButton.addEventListener("click", () => {
+    resetVdpModule(true);
+  });
+}
+
+function attachTripInfoEventListeners() {
+  backFromTripInfoB737Btn.addEventListener("click", showHomeView);
 
   tripInfoB737Form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -951,32 +987,35 @@ function attachEventListeners() {
 }
 
 function initializeApp() {
-  updateToleranceText();
-  restoreFuelCheckState();
   showHomeView();
-  initializeAcnModule();
-  initializeBrakeCoolingModule();
-  initializeVdpModule();
-  initializeTripInfoB737Module();
-  updateFuelCheck({ persist: false });
 }
 
-function registerServiceWorker() {
+function scheduleServiceWorkerRegistration() {
   if (!("serviceWorker" in navigator)) {
     return;
   }
 
-  window.addEventListener("load", async () => {
-    try {
-      const registration = await navigator.serviceWorker.register(
-        `./service-worker.js?v=${APP_VERSION}`,
-        { updateViaCache: "none" }
-      );
-      await registration.update();
-    } catch (error) {
-      console.warn("Service worker registration failed:", error);
-    }
-  });
+  const register = () => {
+    window.setTimeout(registerServiceWorker, 0);
+  };
+
+  if (document.readyState === "complete") {
+    register();
+  } else {
+    window.addEventListener("load", register, { once: true });
+  }
+}
+
+async function registerServiceWorker() {
+  try {
+    const registration = await navigator.serviceWorker.register(
+      `./service-worker.js?v=${APP_VERSION}`,
+      { updateViaCache: "none" }
+    );
+    await registration.update();
+  } catch (error) {
+    console.warn("Service worker registration failed:", error);
+  }
 }
 
 function calculateAndRender() {
@@ -1759,6 +1798,7 @@ function showTripInfoB737View() {
 }
 
 function initializeVdpModule() {
+  attachVdpEventListeners();
   resetVdpModule(false);
 }
 
@@ -2007,6 +2047,7 @@ function tripInfoGetB737AircraftData(aircraftId, registrationFallback = "") {
 }
 
 function initializeBrakeCoolingModule() {
+  attachBrakeCoolingEventListeners();
   resetBrakeCoolingModule(false);
 }
 
@@ -2293,6 +2334,7 @@ function clearBrakeCoolingValidation() {
 }
 
 function initializeAcnModule() {
+  attachAcnEventListeners();
   resetAcnForm(false, false);
 }
 
@@ -2715,6 +2757,7 @@ function showInputScreen() {
 }
 
 function initializeTripInfoB737Module() {
+  attachTripInfoEventListeners();
   tripInfoB737SetupSignaturePad();
   tripInfoB737RestoreState();
   tripInfoB737UpdateTakeOffFuelField();
