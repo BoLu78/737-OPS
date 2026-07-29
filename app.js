@@ -802,61 +802,123 @@ let fuelManualOverrides = {
 let tripInfoLogoDataUrl = "";
 let tripInfoB737SignaturePointerId = null;
 let tripInfoB737SignatureDrawing = false;
-const initializedModules = new Set();
+let tripInfoB737SignatureResizeFrameId = null;
+let tripInfoB737SignatureResizeDeferred = false;
+let tripInfoB737SignatureDrawGeneration = 0;
+let appBootstrapStarted = false;
+const moduleInitializationStates = new Map();
 
 bootstrapApp();
 
 function bootstrapApp() {
+  if (appBootstrapStarted) {
+    return;
+  }
+
+  appBootstrapStarted = true;
+
   try {
     attachHomeEventListeners();
     initializeApp();
     scheduleServiceWorkerRegistration();
-    document.documentElement.dataset.appReady = "true";
+    markApplicationReady();
   } catch (error) {
-    console.error("737 OPS startup failed:", error);
     showStartupRecovery(error);
   }
 }
 
 function showStartupRecovery(error) {
-  document.querySelectorAll(".app-view").forEach((view) => {
-    const isHome = view.id === "homeView";
-    view.hidden = !isHome;
-    view.setAttribute("aria-hidden", isHome ? "false" : "true");
-  });
-
-  if (!homeView || document.getElementById("startup-error-message")) {
+  if (typeof window.show737OpsStartupRecovery === "function") {
+    window.show737OpsStartupRecovery(error, true);
     return;
   }
 
-  const message = document.createElement("p");
-  message.id = "startup-error-message";
-  message.className = "inline-message";
-  message.textContent = "Startup recovery activated. Close and reopen the app. If the problem continues, clear the website data and reinstall the app.";
-  homeView.appendChild(message);
+  console.error("737 OPS startup failed:", error);
+  const recoveryView = document.getElementById("startupRecoveryView");
+
+  document.querySelectorAll(".app-view").forEach((view) => {
+    const isHomeFallback = !recoveryView && view.id === "homeView";
+    view.hidden = !isHomeFallback;
+    view.setAttribute("aria-hidden", isHomeFallback ? "false" : "true");
+  });
+
+  if (recoveryView) {
+    recoveryView.hidden = false;
+    recoveryView.setAttribute("aria-hidden", "false");
+
+    const reloadButton = document.getElementById("reloadApplicationButton");
+    if (reloadButton && reloadButton.dataset.reloadBound !== "true") {
+      reloadButton.dataset.reloadBound = "true";
+      reloadButton.addEventListener("click", () => {
+        window.location.reload();
+      });
+    }
+    return;
+  }
+
+  if (!homeView) {
+    return;
+  }
+
+  if (!document.getElementById("startup-error-message")) {
+    const message = document.createElement("p");
+    message.id = "startup-error-message";
+    message.className = "inline-message";
+    message.textContent = "The application could not start safely.";
+    homeView.appendChild(message);
+  }
+
+  if (!document.getElementById("reloadApplicationButton")) {
+    const reloadButton = document.createElement("button");
+    reloadButton.id = "reloadApplicationButton";
+    reloadButton.className = "button primary";
+    reloadButton.type = "button";
+    reloadButton.textContent = "Reload Application";
+    reloadButton.addEventListener("click", () => {
+      window.location.reload();
+    });
+    homeView.appendChild(reloadButton);
+  }
 }
 
+function markApplicationReady() {
+  if (typeof window.mark737OpsApplicationReady === "function") {
+    window.mark737OpsApplicationReady();
+    return;
+  }
+
+  document.documentElement.dataset.appReady = "true";
+}
 
 function attachHomeEventListeners() {
   openFuelBtn.addEventListener("click", () => {
-    initializeModuleOnce("fuel", initializeFuelModule);
+    if (initializeModuleOnce("fuel", initializeFuelModule) === null) {
+      return;
+    }
     showInputScreen();
     showFuelView();
   });
 
   openAcnBtn.addEventListener("click", () => {
-    initializeModuleOnce("acn", initializeAcnModule);
+    if (initializeModuleOnce("acn", initializeAcnModule) === null) {
+      return;
+    }
     showAcnView();
     clearAcnModule();
   });
 
   openBrakeCoolingBtn.addEventListener("click", () => {
-    initializeModuleOnce("brakeCooling", initializeBrakeCoolingModule);
+    if (initializeModuleOnce("brakeCooling", initializeBrakeCoolingModule) === null) {
+      return;
+    }
     showBrakeCoolingView();
   });
 
   openTripInfoBtn.addEventListener("click", () => {
     const initializedNow = initializeModuleOnce("tripInfo", initializeTripInfoB737Module);
+    if (initializedNow === null) {
+      return;
+    }
     if (!initializedNow) {
       tripInfoB737RestoreState();
     }
@@ -864,19 +926,40 @@ function attachHomeEventListeners() {
   });
 
   openVdpBtn.addEventListener("click", () => {
-    initializeModuleOnce("vdp", initializeVdpModule);
+    if (initializeModuleOnce("vdp", initializeVdpModule) === null) {
+      return;
+    }
     showVdpView();
   });
 }
 
 function initializeModuleOnce(moduleName, initializer) {
-  if (initializedModules.has(moduleName)) {
+  const state = moduleInitializationStates.get(moduleName);
+
+  if (state === "ready") {
     return false;
   }
 
-  initializer();
-  initializedModules.add(moduleName);
-  return true;
+  if (state === "initializing" || state === "failed") {
+    const stateError = new Error(
+      `${moduleName} module initialization is ${state}. Reload the application.`
+    );
+    showStartupRecovery(stateError);
+    return null;
+  }
+
+  moduleInitializationStates.set(moduleName, "initializing");
+
+  try {
+    initializer();
+    moduleInitializationStates.set(moduleName, "ready");
+    return true;
+  } catch (error) {
+    moduleInitializationStates.set(moduleName, "failed");
+    console.error(`737 OPS ${moduleName} module initialization failed:`, error);
+    showStartupRecovery(error);
+    return null;
+  }
 }
 
 function initializeFuelModule() {
@@ -981,9 +1064,7 @@ function attachTripInfoEventListeners() {
     void tripInfoB737Share();
   });
 
-  window.addEventListener("resize", () => {
-    tripInfoB737ResizeSignatureCanvas(true);
-  });
+  window.addEventListener("resize", scheduleTripInfoB737SignatureResize);
 }
 
 function initializeApp() {
@@ -4668,26 +4749,79 @@ function tripInfoB737SetupSignaturePad() {
   tripInfoB737ResizeSignatureCanvas(false);
 }
 
+function scheduleTripInfoB737SignatureResize() {
+  if (tripInfoB737SignatureDrawing) {
+    tripInfoB737SignatureResizeDeferred = true;
+    return;
+  }
+
+  if (tripInfoB737SignatureResizeFrameId !== null) {
+    return;
+  }
+
+  tripInfoB737SignatureResizeFrameId = window.requestAnimationFrame(() => {
+    tripInfoB737SignatureResizeFrameId = null;
+
+    if (tripInfoB737SignatureDrawing) {
+      tripInfoB737SignatureResizeDeferred = true;
+      return;
+    }
+
+    try {
+      tripInfoB737ResizeSignatureCanvas(true);
+    } catch (error) {
+      console.error("737 OPS Trip Info signature resize failed:", error);
+    }
+  });
+}
+
+function tripInfoGetCanvasContext(canvas, purpose) {
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error(`Canvas is unavailable for ${purpose}.`);
+  }
+
+  return context;
+}
+
 function tripInfoB737ResizeSignatureCanvas(preserveContent) {
   const existingSignature = preserveContent ? tripInfoB737State.signatureDataUrl : "";
   const rect = tripInfoB737SignatureCanvas.getBoundingClientRect();
   const cssWidth = Math.max(320, Math.round(rect.width || 320));
   const cssHeight = Math.max(180, Math.round(rect.height || 180));
   const deviceScale = window.devicePixelRatio || 1;
-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
+  const canvasWidth = Math.round(cssWidth * deviceScale);
+  const canvasHeight = Math.round(cssHeight * deviceScale);
 
-  tripInfoB737SignatureCanvas.width = Math.round(cssWidth * deviceScale);
-  tripInfoB737SignatureCanvas.height = Math.round(cssHeight * deviceScale);
+  if (
+    preserveContent
+    && tripInfoB737SignatureCanvas.width === canvasWidth
+    && tripInfoB737SignatureCanvas.height === canvasHeight
+  ) {
+    return;
+  }
+
+  const drawGeneration = ++tripInfoB737SignatureDrawGeneration;
+  tripInfoB737SignatureCanvas.width = canvasWidth;
+  tripInfoB737SignatureCanvas.height = canvasHeight;
+  const ctx = tripInfoGetCanvasContext(
+    tripInfoB737SignatureCanvas,
+    "the Trip Info signature"
+  );
   ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
-  tripInfoB737ResetSignatureSurface();
+  tripInfoB737ResetSignatureSurface(ctx);
 
   if (existingSignature) {
-    void tripInfoB737DrawSignatureDataUrl(existingSignature);
+    void tripInfoB737DrawSignatureDataUrl(existingSignature, drawGeneration);
   }
 }
 
-function tripInfoB737ResetSignatureSurface() {
-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
+function tripInfoB737ResetSignatureSurface(context) {
+  const ctx = context || tripInfoGetCanvasContext(
+    tripInfoB737SignatureCanvas,
+    "the Trip Info signature"
+  );
   const deviceScale = window.devicePixelRatio || 1;
   const width = tripInfoB737SignatureCanvas.width / deviceScale;
   const height = tripInfoB737SignatureCanvas.height / deviceScale;
@@ -4706,11 +4840,22 @@ function handleTripInfoB737SignaturePointerDown(event) {
   }
 
   event.preventDefault();
+
+  if (tripInfoB737SignatureResizeFrameId !== null) {
+    window.cancelAnimationFrame(tripInfoB737SignatureResizeFrameId);
+    tripInfoB737SignatureResizeFrameId = null;
+    tripInfoB737SignatureResizeDeferred = true;
+  }
+
+  tripInfoB737SignatureDrawGeneration += 1;
   tripInfoB737SignatureDrawing = true;
   tripInfoB737SignaturePointerId = event.pointerId;
   tripInfoB737SignatureCanvas.setPointerCapture(event.pointerId);
 
-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
+  const ctx = tripInfoGetCanvasContext(
+    tripInfoB737SignatureCanvas,
+    "the Trip Info signature"
+  );
   const point = tripInfoB737GetSignaturePoint(event);
   ctx.beginPath();
   ctx.moveTo(point.x, point.y);
@@ -4724,7 +4869,10 @@ function handleTripInfoB737SignaturePointerMove(event) {
   }
 
   event.preventDefault();
-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
+  const ctx = tripInfoGetCanvasContext(
+    tripInfoB737SignatureCanvas,
+    "the Trip Info signature"
+  );
   const point = tripInfoB737GetSignaturePoint(event);
   ctx.lineTo(point.x, point.y);
   ctx.stroke();
@@ -4744,6 +4892,11 @@ function handleTripInfoB737SignaturePointerUp(event) {
 
   tripInfoB737SignaturePointerId = null;
   tripInfoB737CommitSignature();
+
+  if (tripInfoB737SignatureResizeDeferred) {
+    tripInfoB737SignatureResizeDeferred = false;
+    scheduleTripInfoB737SignatureResize();
+  }
 }
 
 function tripInfoB737GetSignaturePoint(event) {
@@ -4769,8 +4922,9 @@ function tripInfoB737CommitSignature() {
 }
 
 function clearTripInfoB737Signature() {
-  tripInfoB737ResetSignatureSurface();
+  tripInfoB737SignatureDrawGeneration += 1;
   tripInfoB737State.signatureDataUrl = "";
+  tripInfoB737ResetSignatureSurface();
 
   if (tripInfoB737State.generatedData) {
     tripInfoB737State.generatedData = {
@@ -4783,7 +4937,10 @@ function clearTripInfoB737Signature() {
   tripInfoB737SaveState();
 }
 
-function tripInfoB737DrawSignatureDataUrl(dataUrl) {
+function tripInfoB737DrawSignatureDataUrl(
+  dataUrl,
+  drawGeneration = ++tripInfoB737SignatureDrawGeneration
+) {
   return new Promise((resolve) => {
     if (!dataUrl) {
       resolve();
@@ -4792,12 +4949,28 @@ function tripInfoB737DrawSignatureDataUrl(dataUrl) {
 
     const image = new Image();
     image.onload = () => {
-      const ctx = tripInfoB737SignatureCanvas.getContext("2d");
-      const deviceScale = window.devicePixelRatio || 1;
-      const width = tripInfoB737SignatureCanvas.width / deviceScale;
-      const height = tripInfoB737SignatureCanvas.height / deviceScale;
-      tripInfoB737ResetSignatureSurface();
-      ctx.drawImage(image, 0, 0, width, height);
+      if (
+        drawGeneration !== tripInfoB737SignatureDrawGeneration
+        || dataUrl !== tripInfoB737State.signatureDataUrl
+      ) {
+        resolve();
+        return;
+      }
+
+      try {
+        const ctx = tripInfoGetCanvasContext(
+          tripInfoB737SignatureCanvas,
+          "the Trip Info signature"
+        );
+        const deviceScale = window.devicePixelRatio || 1;
+        const width = tripInfoB737SignatureCanvas.width / deviceScale;
+        const height = tripInfoB737SignatureCanvas.height / deviceScale;
+        tripInfoB737ResetSignatureSurface(ctx);
+        ctx.drawImage(image, 0, 0, width, height);
+      } catch (error) {
+        console.error("737 OPS Trip Info signature restore failed:", error);
+      }
+
       resolve();
     };
     image.onerror = () => {
@@ -4915,9 +5088,12 @@ async function tripInfoB737RenderExportCanvas() {
   });
   const svgBlob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
   const svgUrl = URL.createObjectURL(svgBlob);
-  const ctx = tripInfoB737ExportCanvas.getContext("2d");
 
   try {
+    const ctx = tripInfoGetCanvasContext(
+      tripInfoB737ExportCanvas,
+      "the Trip Info export"
+    );
     const image = await tripInfoLoadImage(svgUrl);
     tripInfoB737ExportCanvas.width = TRIP_INFO_EXPORT_WIDTH;
     tripInfoB737ExportCanvas.height = TRIP_INFO_EXPORT_HEIGHT;

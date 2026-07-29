@@ -1245,6 +1245,24 @@
   </head>
   <body>
     <main class="app-shell">
+      <section
+        class="screen card"
+        id="startupRecoveryView"
+        role="alert"
+        aria-hidden="true"
+        hidden
+      >
+        <h1>737 OPS</h1>
+        <p class="subtitle" id="startup-error-message">
+          The application could not start safely.
+        </p>
+        <div class="actions">
+          <button class="button primary" type="button" id="reloadApplicationButton">
+            Reload Application
+          </button>
+        </div>
+      </section>
+
       <section class="screen app-view" id="homeView" aria-hidden="false">
         <header class="hero">
           <div class="home-logo-wrap">
@@ -2440,6 +2458,67 @@
       </section>
     </main>
 
-    <script src="app.js?v=3.4" defer></script>
+    <script>
+      (function () {
+        "use strict";
+
+        var root = document.documentElement;
+        var recoveryView = document.getElementById("startupRecoveryView");
+        var reloadButton = document.getElementById("reloadApplicationButton");
+        var startupTimeoutId = null;
+
+        function showStartupRecovery(error, force) {
+          if (root.dataset.appReady === "true" && force !== true) {
+            return;
+          }
+
+          console.error("737 OPS startup failed:", error);
+          var appViews = document.querySelectorAll(".app-view");
+          for (var index = 0; index < appViews.length; index += 1) {
+            appViews[index].hidden = true;
+            appViews[index].setAttribute("aria-hidden", "true");
+          }
+
+          recoveryView.hidden = false;
+          recoveryView.setAttribute("aria-hidden", "false");
+        }
+
+        window.show737OpsStartupRecovery = showStartupRecovery;
+        window.mark737OpsApplicationReady = function () {
+          root.dataset.appReady = "true";
+          window.clearTimeout(startupTimeoutId);
+          recoveryView.hidden = true;
+          recoveryView.setAttribute("aria-hidden", "true");
+        };
+
+        reloadButton.addEventListener("click", function () {
+          window.location.reload();
+        });
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            if (event.target && event.target.id === "app-script") {
+              showStartupRecovery(new Error("The application script could not be loaded."));
+              return;
+            }
+
+            if (event.error) {
+              showStartupRecovery(event.error);
+            }
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", function (event) {
+          showStartupRecovery(event.reason);
+        });
+
+        startupTimeoutId = window.setTimeout(function () {
+          showStartupRecovery(new Error("Application initialization timed out."));
+        }, 8000);
+      })();
+    </script>
+    <script id="app-script" src="app.js?v=3.4" defer></script>
   </body>
 </html>

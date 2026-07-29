@@ -1,0 +1,884 @@
+diff --git a/app.js b/app.js
+index b25ecc6..6afeb75 100644
+--- a/app.js
++++ b/app.js
+@@ -802,61 +802,123 @@ let fuelManualOverrides = {
+ let tripInfoLogoDataUrl = "";
+ let tripInfoB737SignaturePointerId = null;
+ let tripInfoB737SignatureDrawing = false;
+-const initializedModules = new Set();
++let tripInfoB737SignatureResizeFrameId = null;
++let tripInfoB737SignatureResizeDeferred = false;
++let tripInfoB737SignatureDrawGeneration = 0;
++let appBootstrapStarted = false;
++const moduleInitializationStates = new Map();
+ 
+ bootstrapApp();
+ 
+ function bootstrapApp() {
++  if (appBootstrapStarted) {
++    return;
++  }
++
++  appBootstrapStarted = true;
++
+   try {
+     attachHomeEventListeners();
+     initializeApp();
+     scheduleServiceWorkerRegistration();
+-    document.documentElement.dataset.appReady = "true";
++    markApplicationReady();
+   } catch (error) {
+-    console.error("737 OPS startup failed:", error);
+     showStartupRecovery(error);
+   }
+ }
+ 
+ function showStartupRecovery(error) {
++  if (typeof window.show737OpsStartupRecovery === "function") {
++    window.show737OpsStartupRecovery(error, true);
++    return;
++  }
++
++  console.error("737 OPS startup failed:", error);
++  const recoveryView = document.getElementById("startupRecoveryView");
++
+   document.querySelectorAll(".app-view").forEach((view) => {
+-    const isHome = view.id === "homeView";
+-    view.hidden = !isHome;
+-    view.setAttribute("aria-hidden", isHome ? "false" : "true");
++    const isHomeFallback = !recoveryView && view.id === "homeView";
++    view.hidden = !isHomeFallback;
++    view.setAttribute("aria-hidden", isHomeFallback ? "false" : "true");
+   });
+ 
+-  if (!homeView || document.getElementById("startup-error-message")) {
++  if (recoveryView) {
++    recoveryView.hidden = false;
++    recoveryView.setAttribute("aria-hidden", "false");
++
++    const reloadButton = document.getElementById("reloadApplicationButton");
++    if (reloadButton && reloadButton.dataset.reloadBound !== "true") {
++      reloadButton.dataset.reloadBound = "true";
++      reloadButton.addEventListener("click", () => {
++        window.location.reload();
++      });
++    }
+     return;
+   }
+ 
+-  const message = document.createElement("p");
+-  message.id = "startup-error-message";
+-  message.className = "inline-message";
+-  message.textContent = "Startup recovery activated. Close and reopen the app. If the problem continues, clear the website data and reinstall the app.";
+-  homeView.appendChild(message);
++  if (!homeView) {
++    return;
++  }
++
++  if (!document.getElementById("startup-error-message")) {
++    const message = document.createElement("p");
++    message.id = "startup-error-message";
++    message.className = "inline-message";
++    message.textContent = "The application could not start safely.";
++    homeView.appendChild(message);
++  }
++
++  if (!document.getElementById("reloadApplicationButton")) {
++    const reloadButton = document.createElement("button");
++    reloadButton.id = "reloadApplicationButton";
++    reloadButton.className = "button primary";
++    reloadButton.type = "button";
++    reloadButton.textContent = "Reload Application";
++    reloadButton.addEventListener("click", () => {
++      window.location.reload();
++    });
++    homeView.appendChild(reloadButton);
++  }
+ }
+ 
++function markApplicationReady() {
++  if (typeof window.mark737OpsApplicationReady === "function") {
++    window.mark737OpsApplicationReady();
++    return;
++  }
++
++  document.documentElement.dataset.appReady = "true";
++}
+ 
+ function attachHomeEventListeners() {
+   openFuelBtn.addEventListener("click", () => {
+-    initializeModuleOnce("fuel", initializeFuelModule);
++    if (initializeModuleOnce("fuel", initializeFuelModule) === null) {
++      return;
++    }
+     showInputScreen();
+     showFuelView();
+   });
+ 
+   openAcnBtn.addEventListener("click", () => {
+-    initializeModuleOnce("acn", initializeAcnModule);
++    if (initializeModuleOnce("acn", initializeAcnModule) === null) {
++      return;
++    }
+     showAcnView();
+     clearAcnModule();
+   });
+ 
+   openBrakeCoolingBtn.addEventListener("click", () => {
+-    initializeModuleOnce("brakeCooling", initializeBrakeCoolingModule);
++    if (initializeModuleOnce("brakeCooling", initializeBrakeCoolingModule) === null) {
++      return;
++    }
+     showBrakeCoolingView();
+   });
+ 
+   openTripInfoBtn.addEventListener("click", () => {
+     const initializedNow = initializeModuleOnce("tripInfo", initializeTripInfoB737Module);
++    if (initializedNow === null) {
++      return;
++    }
+     if (!initializedNow) {
+       tripInfoB737RestoreState();
+     }
+@@ -864,19 +926,40 @@ function attachHomeEventListeners() {
+   });
+ 
+   openVdpBtn.addEventListener("click", () => {
+-    initializeModuleOnce("vdp", initializeVdpModule);
++    if (initializeModuleOnce("vdp", initializeVdpModule) === null) {
++      return;
++    }
+     showVdpView();
+   });
+ }
+ 
+ function initializeModuleOnce(moduleName, initializer) {
+-  if (initializedModules.has(moduleName)) {
++  const state = moduleInitializationStates.get(moduleName);
++
++  if (state === "ready") {
+     return false;
+   }
+ 
+-  initializer();
+-  initializedModules.add(moduleName);
+-  return true;
++  if (state === "initializing" || state === "failed") {
++    const stateError = new Error(
++      `${moduleName} module initialization is ${state}. Reload the application.`
++    );
++    showStartupRecovery(stateError);
++    return null;
++  }
++
++  moduleInitializationStates.set(moduleName, "initializing");
++
++  try {
++    initializer();
++    moduleInitializationStates.set(moduleName, "ready");
++    return true;
++  } catch (error) {
++    moduleInitializationStates.set(moduleName, "failed");
++    console.error(`737 OPS ${moduleName} module initialization failed:`, error);
++    showStartupRecovery(error);
++    return null;
++  }
+ }
+ 
+ function initializeFuelModule() {
+@@ -981,9 +1064,7 @@ function attachTripInfoEventListeners() {
+     void tripInfoB737Share();
+   });
+ 
+-  window.addEventListener("resize", () => {
+-    tripInfoB737ResizeSignatureCanvas(true);
+-  });
++  window.addEventListener("resize", scheduleTripInfoB737SignatureResize);
+ }
+ 
+ function initializeApp() {
+@@ -4668,26 +4749,79 @@ function tripInfoB737SetupSignaturePad() {
+   tripInfoB737ResizeSignatureCanvas(false);
+ }
+ 
++function scheduleTripInfoB737SignatureResize() {
++  if (tripInfoB737SignatureDrawing) {
++    tripInfoB737SignatureResizeDeferred = true;
++    return;
++  }
++
++  if (tripInfoB737SignatureResizeFrameId !== null) {
++    return;
++  }
++
++  tripInfoB737SignatureResizeFrameId = window.requestAnimationFrame(() => {
++    tripInfoB737SignatureResizeFrameId = null;
++
++    if (tripInfoB737SignatureDrawing) {
++      tripInfoB737SignatureResizeDeferred = true;
++      return;
++    }
++
++    try {
++      tripInfoB737ResizeSignatureCanvas(true);
++    } catch (error) {
++      console.error("737 OPS Trip Info signature resize failed:", error);
++    }
++  });
++}
++
++function tripInfoGetCanvasContext(canvas, purpose) {
++  const context = canvas.getContext("2d");
++
++  if (!context) {
++    throw new Error(`Canvas is unavailable for ${purpose}.`);
++  }
++
++  return context;
++}
++
+ function tripInfoB737ResizeSignatureCanvas(preserveContent) {
+   const existingSignature = preserveContent ? tripInfoB737State.signatureDataUrl : "";
+   const rect = tripInfoB737SignatureCanvas.getBoundingClientRect();
+   const cssWidth = Math.max(320, Math.round(rect.width || 320));
+   const cssHeight = Math.max(180, Math.round(rect.height || 180));
+   const deviceScale = window.devicePixelRatio || 1;
+-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
++  const canvasWidth = Math.round(cssWidth * deviceScale);
++  const canvasHeight = Math.round(cssHeight * deviceScale);
+ 
+-  tripInfoB737SignatureCanvas.width = Math.round(cssWidth * deviceScale);
+-  tripInfoB737SignatureCanvas.height = Math.round(cssHeight * deviceScale);
++  if (
++    preserveContent
++    && tripInfoB737SignatureCanvas.width === canvasWidth
++    && tripInfoB737SignatureCanvas.height === canvasHeight
++  ) {
++    return;
++  }
++
++  const drawGeneration = ++tripInfoB737SignatureDrawGeneration;
++  tripInfoB737SignatureCanvas.width = canvasWidth;
++  tripInfoB737SignatureCanvas.height = canvasHeight;
++  const ctx = tripInfoGetCanvasContext(
++    tripInfoB737SignatureCanvas,
++    "the Trip Info signature"
++  );
+   ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+-  tripInfoB737ResetSignatureSurface();
++  tripInfoB737ResetSignatureSurface(ctx);
+ 
+   if (existingSignature) {
+-    void tripInfoB737DrawSignatureDataUrl(existingSignature);
++    void tripInfoB737DrawSignatureDataUrl(existingSignature, drawGeneration);
+   }
+ }
+ 
+-function tripInfoB737ResetSignatureSurface() {
+-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
++function tripInfoB737ResetSignatureSurface(context) {
++  const ctx = context || tripInfoGetCanvasContext(
++    tripInfoB737SignatureCanvas,
++    "the Trip Info signature"
++  );
+   const deviceScale = window.devicePixelRatio || 1;
+   const width = tripInfoB737SignatureCanvas.width / deviceScale;
+   const height = tripInfoB737SignatureCanvas.height / deviceScale;
+@@ -4706,11 +4840,22 @@ function handleTripInfoB737SignaturePointerDown(event) {
+   }
+ 
+   event.preventDefault();
++
++  if (tripInfoB737SignatureResizeFrameId !== null) {
++    window.cancelAnimationFrame(tripInfoB737SignatureResizeFrameId);
++    tripInfoB737SignatureResizeFrameId = null;
++    tripInfoB737SignatureResizeDeferred = true;
++  }
++
++  tripInfoB737SignatureDrawGeneration += 1;
+   tripInfoB737SignatureDrawing = true;
+   tripInfoB737SignaturePointerId = event.pointerId;
+   tripInfoB737SignatureCanvas.setPointerCapture(event.pointerId);
+ 
+-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
++  const ctx = tripInfoGetCanvasContext(
++    tripInfoB737SignatureCanvas,
++    "the Trip Info signature"
++  );
+   const point = tripInfoB737GetSignaturePoint(event);
+   ctx.beginPath();
+   ctx.moveTo(point.x, point.y);
+@@ -4724,7 +4869,10 @@ function handleTripInfoB737SignaturePointerMove(event) {
+   }
+ 
+   event.preventDefault();
+-  const ctx = tripInfoB737SignatureCanvas.getContext("2d");
++  const ctx = tripInfoGetCanvasContext(
++    tripInfoB737SignatureCanvas,
++    "the Trip Info signature"
++  );
+   const point = tripInfoB737GetSignaturePoint(event);
+   ctx.lineTo(point.x, point.y);
+   ctx.stroke();
+@@ -4744,6 +4892,11 @@ function handleTripInfoB737SignaturePointerUp(event) {
+ 
+   tripInfoB737SignaturePointerId = null;
+   tripInfoB737CommitSignature();
++
++  if (tripInfoB737SignatureResizeDeferred) {
++    tripInfoB737SignatureResizeDeferred = false;
++    scheduleTripInfoB737SignatureResize();
++  }
+ }
+ 
+ function tripInfoB737GetSignaturePoint(event) {
+@@ -4769,8 +4922,9 @@ function tripInfoB737CommitSignature() {
+ }
+ 
+ function clearTripInfoB737Signature() {
+-  tripInfoB737ResetSignatureSurface();
++  tripInfoB737SignatureDrawGeneration += 1;
+   tripInfoB737State.signatureDataUrl = "";
++  tripInfoB737ResetSignatureSurface();
+ 
+   if (tripInfoB737State.generatedData) {
+     tripInfoB737State.generatedData = {
+@@ -4783,7 +4937,10 @@ function clearTripInfoB737Signature() {
+   tripInfoB737SaveState();
+ }
+ 
+-function tripInfoB737DrawSignatureDataUrl(dataUrl) {
++function tripInfoB737DrawSignatureDataUrl(
++  dataUrl,
++  drawGeneration = ++tripInfoB737SignatureDrawGeneration
++) {
+   return new Promise((resolve) => {
+     if (!dataUrl) {
+       resolve();
+@@ -4792,12 +4949,28 @@ function tripInfoB737DrawSignatureDataUrl(dataUrl) {
+ 
+     const image = new Image();
+     image.onload = () => {
+-      const ctx = tripInfoB737SignatureCanvas.getContext("2d");
+-      const deviceScale = window.devicePixelRatio || 1;
+-      const width = tripInfoB737SignatureCanvas.width / deviceScale;
+-      const height = tripInfoB737SignatureCanvas.height / deviceScale;
+-      tripInfoB737ResetSignatureSurface();
+-      ctx.drawImage(image, 0, 0, width, height);
++      if (
++        drawGeneration !== tripInfoB737SignatureDrawGeneration
++        || dataUrl !== tripInfoB737State.signatureDataUrl
++      ) {
++        resolve();
++        return;
++      }
++
++      try {
++        const ctx = tripInfoGetCanvasContext(
++          tripInfoB737SignatureCanvas,
++          "the Trip Info signature"
++        );
++        const deviceScale = window.devicePixelRatio || 1;
++        const width = tripInfoB737SignatureCanvas.width / deviceScale;
++        const height = tripInfoB737SignatureCanvas.height / deviceScale;
++        tripInfoB737ResetSignatureSurface(ctx);
++        ctx.drawImage(image, 0, 0, width, height);
++      } catch (error) {
++        console.error("737 OPS Trip Info signature restore failed:", error);
++      }
++
+       resolve();
+     };
+     image.onerror = () => {
+@@ -4915,9 +5088,12 @@ async function tripInfoB737RenderExportCanvas() {
+   });
+   const svgBlob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+   const svgUrl = URL.createObjectURL(svgBlob);
+-  const ctx = tripInfoB737ExportCanvas.getContext("2d");
+ 
+   try {
++    const ctx = tripInfoGetCanvasContext(
++      tripInfoB737ExportCanvas,
++      "the Trip Info export"
++    );
+     const image = await tripInfoLoadImage(svgUrl);
+     tripInfoB737ExportCanvas.width = TRIP_INFO_EXPORT_WIDTH;
+     tripInfoB737ExportCanvas.height = TRIP_INFO_EXPORT_HEIGHT;
+diff --git a/index.html b/index.html
+index e4b81bb..da7d179 100644
+--- a/index.html
++++ b/index.html
+@@ -1245,6 +1245,24 @@
+   </head>
+   <body>
+     <main class="app-shell">
++      <section
++        class="screen card"
++        id="startupRecoveryView"
++        role="alert"
++        aria-hidden="true"
++        hidden
++      >
++        <h1>737 OPS</h1>
++        <p class="subtitle" id="startup-error-message">
++          The application could not start safely.
++        </p>
++        <div class="actions">
++          <button class="button primary" type="button" id="reloadApplicationButton">
++            Reload Application
++          </button>
++        </div>
++      </section>
++
+       <section class="screen app-view" id="homeView" aria-hidden="false">
+         <header class="hero">
+           <div class="home-logo-wrap">
+@@ -2440,6 +2458,67 @@
+       </section>
+     </main>
+ 
+-    <script src="app.js?v=3.4" defer></script>
++    <script>
++      (function () {
++        "use strict";
++
++        var root = document.documentElement;
++        var recoveryView = document.getElementById("startupRecoveryView");
++        var reloadButton = document.getElementById("reloadApplicationButton");
++        var startupTimeoutId = null;
++
++        function showStartupRecovery(error, force) {
++          if (root.dataset.appReady === "true" && force !== true) {
++            return;
++          }
++
++          console.error("737 OPS startup failed:", error);
++          var appViews = document.querySelectorAll(".app-view");
++          for (var index = 0; index < appViews.length; index += 1) {
++            appViews[index].hidden = true;
++            appViews[index].setAttribute("aria-hidden", "true");
++          }
++
++          recoveryView.hidden = false;
++          recoveryView.setAttribute("aria-hidden", "false");
++        }
++
++        window.show737OpsStartupRecovery = showStartupRecovery;
++        window.mark737OpsApplicationReady = function () {
++          root.dataset.appReady = "true";
++          window.clearTimeout(startupTimeoutId);
++          recoveryView.hidden = true;
++          recoveryView.setAttribute("aria-hidden", "true");
++        };
++
++        reloadButton.addEventListener("click", function () {
++          window.location.reload();
++        });
++
++        window.addEventListener(
++          "error",
++          function (event) {
++            if (event.target && event.target.id === "app-script") {
++              showStartupRecovery(new Error("The application script could not be loaded."));
++              return;
++            }
++
++            if (event.error) {
++              showStartupRecovery(event.error);
++            }
++          },
++          true
++        );
++
++        window.addEventListener("unhandledrejection", function (event) {
++          showStartupRecovery(event.reason);
++        });
++
++        startupTimeoutId = window.setTimeout(function () {
++          showStartupRecovery(new Error("Application initialization timed out."));
++        }, 8000);
++      })();
++    </script>
++    <script id="app-script" src="app.js?v=3.4" defer></script>
+   </body>
+ </html>
+diff --git a/manifest.json b/manifest.json
+index 017e581..fafe2dc 100644
+--- a/manifest.json
++++ b/manifest.json
+@@ -1,6 +1,8 @@
+ {
+   "name": "737 OPS",
+   "short_name": "737 OPS",
++  "id": "/737-OPS/?v=3.4",
++  "scope": "./",
+   "version": "3.4",
+   "display": "standalone",
+   "background_color": "#f3efe4",
+diff --git a/service-worker.js b/service-worker.js
+index 72a9ba6..88394ba 100644
+--- a/service-worker.js
++++ b/service-worker.js
+@@ -1,95 +1,237 @@
+-const CACHE_NAME = "737-ops-v3.4";
+-const OFFLINE_FALLBACK_URL = "./index.html";
+-const CORE_APP_FILES = [
+-  "./",
+-  "./?v=3.4",
+-  "./index.html",
+-  "./app.js",
+-  "./app.js?v=3.4",
+-  "./manifest.json",
+-  "./manifest.json?v=3.4",
+-];
+-const OPTIONAL_APP_FILES = [
+-  "./service-worker.js",
++const APP_VERSION = "3.4";
++// Keep this equal to the production PWA's original computed app ID.
++const PWA_ID = "/737-OPS/?v=3.4";
++const CACHE_PREFIX = "737-ops-v";
++// Increment this revision whenever this worker or its shell changes without an app version bump.
++const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-r1`;
++const STAGING_CACHE_NAME = `${CACHE_NAME}-staging`;
++const APP_SHELL_URL = `./?v=${APP_VERSION}`;
++const APP_SCRIPT_URL = `./app.js?v=${APP_VERSION}`;
++const APP_MANIFEST_URL = `./manifest.json?v=${APP_VERSION}`;
++const PRECACHE_URLS = [
++  APP_SHELL_URL,
++  APP_SCRIPT_URL,
++  APP_MANIFEST_URL,
+   "./assets/tripinfo-logo-neos.png",
+   "./icons/icon-192.png",
+   "./icons/icon-512.png",
+ ];
++let cacheRepairPromise = null;
+ 
+-async function matchOfflineShell(cache) {
+-  return (
+-    await cache.match(OFFLINE_FALLBACK_URL)
+-  ) || (
+-    await cache.match("./")
+-  ) || await cache.match("./?v=3.4");
+-}
++async function validatePrecache(cache) {
++  const [shellResponse, scriptResponse, manifestResponse] = await Promise.all([
++    cache.match(APP_SHELL_URL),
++    cache.match(APP_SCRIPT_URL),
++    cache.match(APP_MANIFEST_URL),
++  ]);
++
++  if (!shellResponse || !scriptResponse || !manifestResponse) {
++    throw new Error("Required app shell files are missing from the staged cache.");
++  }
+ 
+-async function matchCachedAppScript(cache) {
+-  return (await cache.match("./app.js?v=3.4")) || await cache.match("./app.js");
++  const [shellText, scriptText, manifest] = await Promise.all([
++    shellResponse.text(),
++    scriptResponse.text(),
++    manifestResponse.json(),
++  ]);
++
++  const shellVersionMatches =
++    shellText.includes(`<meta name="app-version" content="${APP_VERSION}">`)
++    && shellText.includes(`src="app.js?v=${APP_VERSION}"`);
++  const scriptVersionMatches =
++    scriptText.includes(`const APP_VERSION = "${APP_VERSION}";`);
++  const manifestVersionMatches =
++    manifest.version === APP_VERSION
++    && manifest.start_url === `./?v=${APP_VERSION}`
++    && manifest.id === PWA_ID
++    && manifest.scope === "./";
++
++  if (!shellVersionMatches || !scriptVersionMatches || !manifestVersionMatches) {
++    throw new Error("App shell version validation failed.");
++  }
+ }
+ 
+-async function matchCachedManifest(cache) {
+-  return (await cache.match("./manifest.json?v=3.4")) || await cache.match("./manifest.json");
++async function copyStagedCache(stagingCache) {
++  const releaseCache = await caches.open(CACHE_NAME);
++
++  for (const url of PRECACHE_URLS) {
++    const response = await stagingCache.match(url);
++
++    if (!response) {
++      throw new Error(`Staged response is missing for ${url}`);
++    }
++
++    await releaseCache.put(url, response);
++  }
+ }
+ 
+-async function cacheRequiredFiles(cache, urls) {
+-  for (const url of urls) {
+-    const request = new Request(url, { cache: "reload" });
+-    const response = await fetch(request);
++async function precacheAppShell() {
++  try {
++    await caches.delete(STAGING_CACHE_NAME);
++  } catch (error) {
++    console.warn("737 OPS stale staging cache cleanup failed:", error);
++  }
+ 
+-    if (!response || !response.ok) {
+-      throw new Error(`Failed to cache ${url}`);
++  const stagingCache = await caches.open(STAGING_CACHE_NAME);
++  const requests = PRECACHE_URLS.map(
++    (url) => new Request(url, { cache: "reload" })
++  );
++
++  try {
++    await stagingCache.addAll(requests);
++    await validatePrecache(stagingCache);
++    await copyStagedCache(stagingCache);
++  } finally {
++    try {
++      await caches.delete(STAGING_CACHE_NAME);
++    } catch (error) {
++      console.warn("737 OPS staging cache cleanup failed:", error);
+     }
++  }
++}
++
++async function matchReleaseCache(request) {
++  try {
++    const cache = await caches.open(CACHE_NAME);
++    return await cache.match(request);
++  } catch (error) {
++    console.error("737 OPS cache read failed:", error);
++    return null;
++  }
++}
++
++async function inspectReleaseCache() {
++  try {
++    const cache = await caches.open(CACHE_NAME);
++    const responses = await Promise.all(
++      PRECACHE_URLS.map((url) => cache.match(url))
++    );
++    const shellResponse = responses[PRECACHE_URLS.indexOf(APP_SHELL_URL)];
++    const scriptResponse = responses[PRECACHE_URLS.indexOf(APP_SCRIPT_URL)];
+ 
+-    await cache.put(url, response.clone());
++    return {
++      shell: shellResponse && scriptResponse ? shellResponse : null,
++      complete: responses.every(Boolean),
++    };
++  } catch (error) {
++    console.error("737 OPS release cache validation failed:", error);
++    return {
++      shell: null,
++      complete: false,
++    };
+   }
+ }
+ 
+-async function cacheOptionalFiles(cache, urls) {
+-  await Promise.allSettled(
+-    urls.map(async (url) => {
+-      const request = new Request(url, { cache: "reload" });
+-      const response = await fetch(request);
++function repairReleaseCache() {
++  if (!cacheRepairPromise) {
++    cacheRepairPromise = precacheAppShell().finally(() => {
++      cacheRepairPromise = null;
++    });
++  }
++
++  return cacheRepairPromise;
++}
+ 
+-      if (!response || !response.ok) {
+-        throw new Error(`Failed to cache ${url}`);
+-      }
++function createRecoveryResponse(error) {
++  console.error("737 OPS offline shell unavailable:", error);
+ 
+-      await cache.put(url, response.clone());
+-    })
++  return new Response(
++    `<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
++    <meta name="theme-color" content="#f3efe4">
++    <title>737 OPS</title>
++    <style>
++      body { margin: 0; padding: 24px; background: #f3efe4; color: #101827; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
++      main { max-width: 520px; margin: 0 auto; }
++      button { min-height: 48px; border: 0; border-radius: 12px; padding: 12px 18px; background: #163b57; color: #fff; font: inherit; font-weight: 700; }
++    </style>
++  </head>
++  <body>
++    <main>
++      <h1>737 OPS</h1>
++      <p>The application could not start. Check the connection and try again.</p>
++      <button type="button" onclick="window.location.reload()">Reload Application</button>
++    </main>
++  </body>
++</html>`,
++    {
++      status: 503,
++      headers: {
++        "Cache-Control": "no-store",
++        "Content-Type": "text/html; charset=utf-8",
++      },
++    }
+   );
+ }
+ 
+-async function precacheAppShell() {
+-  const cache = await caches.open(CACHE_NAME);
+-  await cacheRequiredFiles(cache, CORE_APP_FILES);
+-  await cacheOptionalFiles(cache, OPTIONAL_APP_FILES);
++async function respondToNavigation(request, cachedShellPromise) {
++  const cachedShell = await cachedShellPromise;
+ 
+-  const hasOfflineShell = await matchOfflineShell(cache);
+-  const hasAppScript = await matchCachedAppScript(cache);
+-  const hasManifest = await matchCachedManifest(cache);
++  if (cachedShell) {
++    return cachedShell;
++  }
+ 
+-  if (!hasOfflineShell || !hasAppScript || !hasManifest) {
+-    throw new Error("Core app shell is unavailable for offline use.");
++  try {
++    const networkResponse = await fetch(request);
++
++    if (networkResponse && networkResponse.ok) {
++      return networkResponse;
++    }
++
++    return createRecoveryResponse(
++      new Error(
++        `Navigation failed with status ${
++          networkResponse ? networkResponse.status : "unknown"
++        }.`
++      )
++    );
++  } catch (error) {
++    return createRecoveryResponse(error);
++  }
++}
++
++async function respondToAsset(request) {
++  const cachedResponse = await matchReleaseCache(request);
++
++  if (cachedResponse) {
++    return cachedResponse;
++  }
++
++  try {
++    return await fetch(request);
++  } catch {
++    return Response.error();
+   }
+ }
+ 
+ self.addEventListener("install", (event) => {
+-  event.waitUntil(precacheAppShell());
+-  self.skipWaiting();
++  event.waitUntil(
++    (async () => {
++      await precacheAppShell();
++      await self.skipWaiting();
++    })()
++  );
+ });
+ 
+ self.addEventListener("activate", (event) => {
+   event.waitUntil(
+-    caches.keys().then((keys) =>
+-      Promise.all(
+-        keys
+-          .filter((key) => key !== CACHE_NAME)
+-          .map((key) => caches.delete(key))
+-      )
+-    )
++    (async () => {
++      const cacheNames = await caches.keys();
++      await Promise.all(
++        cacheNames
++          .filter(
++            (cacheName) =>
++              cacheName.startsWith(CACHE_PREFIX)
++              && cacheName !== CACHE_NAME
++          )
++          .map((cacheName) => caches.delete(cacheName))
++      );
++      await self.clients.claim();
++    })()
+   );
+-  self.clients.claim();
+ });
+ 
+ self.addEventListener("fetch", (event) => {
+@@ -110,47 +252,26 @@ self.addEventListener("fetch", (event) => {
+   }
+ 
+   if (request.mode === "navigate") {
++    const cacheStatePromise = inspectReleaseCache();
+     event.respondWith(
+-      (async () => {
+-        const cache = await caches.open(CACHE_NAME);
+-        try {
+-          const networkResponse = await fetch(request);
+-
+-          if (networkResponse && networkResponse.ok) {
+-            await cache.put(OFFLINE_FALLBACK_URL, networkResponse.clone());
+-          }
+-
+-          return networkResponse;
+-        } catch {
+-          return (await matchOfflineShell(cache)) || Response.error();
++      respondToNavigation(
++        request,
++        cacheStatePromise.then((cacheState) => cacheState.shell)
++      )
++    );
++    event.waitUntil(
++      cacheStatePromise.then((cacheState) => {
++        if (cacheState.complete) {
++          return;
+         }
+-      })()
++
++        return repairReleaseCache().catch((error) => {
++          console.error("737 OPS background cache repair failed:", error);
++        });
++      })
+     );
+     return;
+   }
+ 
+-  event.respondWith(
+-    (async () => {
+-      const cache = await caches.open(CACHE_NAME);
+-      const cachedResponse = await cache.match(request);
+-      const networkResponsePromise = fetch(request).then(async (networkResponse) => {
+-        if (networkResponse && networkResponse.ok) {
+-          await cache.put(request, networkResponse.clone());
+-        }
+-
+-        return networkResponse;
+-      });
+-
+-      if (cachedResponse) {
+-        event.waitUntil(networkResponsePromise.catch(() => {}));
+-        return cachedResponse;
+-      }
+-
+-      try {
+-        return await networkResponsePromise;
+-      } catch {
+-        return Response.error();
+-      }
+-    })()
+-  );
++  event.respondWith(respondToAsset(request));
+ });
