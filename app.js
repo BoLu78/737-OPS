@@ -1,4 +1,4 @@
-const APP_VERSION = "3.5";
+const APP_VERSION = "4.0";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1089,11 +1089,42 @@ function scheduleServiceWorkerRegistration() {
 
 async function registerServiceWorker() {
   try {
-    const registration = await navigator.serviceWorker.register(
-      `./service-worker.js?v=${APP_VERSION}`,
-      { updateViaCache: "none" }
+    const workerUrl = new URL("./service-worker.js", window.location.href).href;
+    const existingRegistration =
+      await navigator.serviceWorker.getRegistration("./");
+    const existingWorkers = existingRegistration
+      ? [
+        existingRegistration.installing,
+        existingRegistration.waiting,
+        existingRegistration.active,
+      ].filter(Boolean)
+      : [];
+    const usesStableWorkerUrl = existingWorkers.some(
+      (worker) => worker.scriptURL === workerUrl
     );
-    await registration.update();
+    let registration = existingRegistration;
+    let shouldCheckForUpdate = false;
+
+    if (!registration || !usesStableWorkerUrl) {
+      registration = await navigator.serviceWorker.register(
+        "./service-worker.js",
+        { updateViaCache: "none" }
+      );
+    } else {
+      shouldCheckForUpdate =
+        !registration.installing && !registration.waiting;
+    }
+
+    const activeWorker =
+      navigator.serviceWorker.controller || registration.active;
+
+    if (activeWorker) {
+      activeWorker.postMessage({ type: "APP_READY" });
+    }
+
+    if (shouldCheckForUpdate) {
+      await registration.update();
+    }
   } catch (error) {
     console.warn("Service worker registration failed:", error);
   }
