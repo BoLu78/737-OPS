@@ -108,12 +108,6 @@
         padding: 8px 2px 10px;
       }
 
-      .fuel-header h1 {
-        font-size: clamp(2rem, 5vw, 2.4rem);
-        font-weight: 700;
-        line-height: 1.02;
-      }
-
       .eyebrow {
         display: inline-block;
         margin: 4px 0 0;
@@ -468,10 +462,6 @@
         gap: 10px;
       }
 
-      .actions.fuel-actions {
-        grid-template-columns: 1fr;
-      }
-
       .button {
         min-height: 52px;
         border: none;
@@ -514,6 +504,67 @@
       .module-back {
         width: auto;
         min-width: 108px;
+      }
+
+      .fuel-module-nav {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .fuel-module-nav .module-back {
+        min-width: 96px;
+        justify-self: start;
+        white-space: nowrap;
+      }
+
+      .fuel-nav-title {
+        align-self: center;
+        justify-self: center;
+        font-size: clamp(1.2rem, 5vw, 1.5rem);
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .button.fuel-clear-button {
+        width: auto;
+        min-width: 84px;
+        min-height: 44px;
+        align-self: center;
+        justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 10px 12px;
+        border-color: #e53935;
+        border-radius: 13px;
+        background: #e53935;
+        box-shadow: 0 7px 16px rgba(229, 57, 53, 0.28);
+        color: #fff;
+        font-size: 0.82rem;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .button.fuel-clear-button:focus-visible {
+        outline: 3px solid rgba(229, 57, 53, 0.32);
+        outline-offset: 2px;
+      }
+
+      .fuel-clear-icon {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+        color: #fff;
+      }
+
+      .fuel-header-meta {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
       }
 
       .module-header-row {
@@ -1401,17 +1452,41 @@
       </section>
 
       <section class="screen app-view" id="fuelView" hidden aria-hidden="true">
-        <div class="module-nav">
+        <div class="module-nav fuel-module-nav">
           <button class="button module-back" type="button" id="backFromFuelBtn">Back</button>
+          <h1 class="fuel-nav-title">FuelCk</h1>
+          <button
+            class="button fuel-clear-button"
+            type="button"
+            id="clear-button"
+            aria-label="Clear all fuel values"
+          >
+            <svg
+              class="fuel-clear-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+              <path d="M10 11v5"></path>
+              <path d="M14 11v5"></path>
+            </svg>
+            <span>CLEAR</span>
+          </button>
         </div>
 
         <section class="screen" id="input-screen">
           <header class="hero fuel-header">
-            <div class="module-header-row">
-              <h1>FuelCk</h1>
+            <div class="fuel-header-meta">
+              <p id="toleranceText" class="fuel-tolerance-note mono">—</p>
               <span class="module-version-badge">3.5</span>
             </div>
-            <p id="toleranceText" class="fuel-tolerance-note mono">—</p>
           </header>
 
           <form id="fuel-form" class="stack" novalidate>
@@ -1710,9 +1785,6 @@
               </div>
             </section>
 
-            <div class="actions fuel-actions">
-              <button class="button" type="button" id="clear-button">CLEAR</button>
-            </div>
           </form>
         </section>
       </section>

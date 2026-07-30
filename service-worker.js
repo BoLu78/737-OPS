@@ -3,7 +3,7 @@ const APP_VERSION = "3.5";
 const PWA_ID = "/737-OPS/?v=3.5";
 const CACHE_PREFIX = "737-ops-v";
 // Increment this revision whenever this worker or its shell changes without an app version bump.
-const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-r2`;
+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-r3`;
 const STAGING_CACHE_NAME = `${CACHE_NAME}-staging`;
 const APP_SHELL_URL = `./?v=${APP_VERSION}`;
 const APP_SCRIPT_URL = `./app.js?v=${APP_VERSION}`;
