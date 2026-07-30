@@ -438,7 +438,7 @@ index e4b81bb..da7d179 100644
        </section>
      </main>
  
--    <script src="app.js?v=3.4" defer></script>
+-    <script src="app.js?v=3.5" defer></script>
 +    <script>
 +      (function () {
 +        "use strict";
@@ -500,7 +500,7 @@ index e4b81bb..da7d179 100644
 +        }, 8000);
 +      })();
 +    </script>
-+    <script id="app-script" src="app.js?v=3.4" defer></script>
++    <script id="app-script" src="app.js?v=3.5" defer></script>
    </body>
  </html>
 diff --git a/manifest.json b/manifest.json
@@ -511,9 +511,9 @@ index 017e581..fafe2dc 100644
  {
    "name": "737 OPS",
    "short_name": "737 OPS",
-+  "id": "/737-OPS/?v=3.4",
++  "id": "/737-OPS/?v=3.5",
 +  "scope": "./",
-   "version": "3.4",
+   "version": "3.5",
    "display": "standalone",
    "background_color": "#f3efe4",
 diff --git a/service-worker.js b/service-worker.js
@@ -521,25 +521,25 @@ index 72a9ba6..88394ba 100644
 --- a/service-worker.js
 +++ b/service-worker.js
 @@ -1,95 +1,237 @@
--const CACHE_NAME = "737-ops-v3.4";
+-const CACHE_NAME = "737-ops-v3.5";
 -const OFFLINE_FALLBACK_URL = "./index.html";
 -const CORE_APP_FILES = [
 -  "./",
--  "./?v=3.4",
+-  "./?v=3.5",
 -  "./index.html",
 -  "./app.js",
--  "./app.js?v=3.4",
+-  "./app.js?v=3.5",
 -  "./manifest.json",
--  "./manifest.json?v=3.4",
+-  "./manifest.json?v=3.5",
 -];
 -const OPTIONAL_APP_FILES = [
 -  "./service-worker.js",
-+const APP_VERSION = "3.4";
-+// Keep this equal to the production PWA's original computed app ID.
-+const PWA_ID = "/737-OPS/?v=3.4";
++const APP_VERSION = "3.5";
++// Keep this equal to the manifest's PWA ID.
++const PWA_ID = "/737-OPS/?v=3.5";
 +const CACHE_PREFIX = "737-ops-v";
 +// Increment this revision whenever this worker or its shell changes without an app version bump.
-+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-r1`;
++const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-r2`;
 +const STAGING_CACHE_NAME = `${CACHE_NAME}-staging`;
 +const APP_SHELL_URL = `./?v=${APP_VERSION}`;
 +const APP_SCRIPT_URL = `./app.js?v=${APP_VERSION}`;
@@ -559,7 +559,7 @@ index 72a9ba6..88394ba 100644
 -    await cache.match(OFFLINE_FALLBACK_URL)
 -  ) || (
 -    await cache.match("./")
--  ) || await cache.match("./?v=3.4");
+-  ) || await cache.match("./?v=3.5");
 -}
 +async function validatePrecache(cache) {
 +  const [shellResponse, scriptResponse, manifestResponse] = await Promise.all([
@@ -573,7 +573,7 @@ index 72a9ba6..88394ba 100644
 +  }
  
 -async function matchCachedAppScript(cache) {
--  return (await cache.match("./app.js?v=3.4")) || await cache.match("./app.js");
+-  return (await cache.match("./app.js?v=3.5")) || await cache.match("./app.js");
 +  const [shellText, scriptText, manifest] = await Promise.all([
 +    shellResponse.text(),
 +    scriptResponse.text(),
@@ -597,7 +597,7 @@ index 72a9ba6..88394ba 100644
  }
  
 -async function matchCachedManifest(cache) {
--  return (await cache.match("./manifest.json?v=3.4")) || await cache.match("./manifest.json");
+-  return (await cache.match("./manifest.json?v=3.5")) || await cache.match("./manifest.json");
 +async function copyStagedCache(stagingCache) {
 +  const releaseCache = await caches.open(CACHE_NAME);
 +

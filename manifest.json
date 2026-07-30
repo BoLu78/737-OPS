@@ -1,13 +1,13 @@
 {
   "name": "737 OPS",
   "short_name": "737 OPS",
-  "id": "/737-OPS/?v=3.4",
+  "id": "/737-OPS/?v=3.5",
   "scope": "./",
-  "version": "3.4",
+  "version": "3.5",
   "display": "standalone",
   "background_color": "#f3efe4",
   "theme_color": "#f3efe4",
-  "start_url": "./?v=3.4",
+  "start_url": "./?v=3.5",
   "icons": [
     {
       "src": "icons/icon-192.png",
