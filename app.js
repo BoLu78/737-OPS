@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.2";
+const APP_VERSION = "4.3";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -827,6 +827,7 @@ function bootstrapApp() {
   appBootstrapStarted = true;
 
   try {
+    attachNumericInputSelection();
     attachHomeEventListeners();
     initializeApp();
     scheduleServiceWorkerRegistration();
@@ -834,6 +835,44 @@ function bootstrapApp() {
   } catch (error) {
     showStartupRecovery(error);
   }
+}
+
+function attachNumericInputSelection() {
+  document.addEventListener("focusin", handleNumericInputFocus);
+}
+
+function handleNumericInputFocus(event) {
+  const field = event.target;
+
+  if (!isEditableNumericInput(field) || field.value === "") {
+    return;
+  }
+
+  window.setTimeout(() => {
+    if (document.activeElement !== field || field.value === "") {
+      return;
+    }
+
+    field.select();
+  }, 0);
+}
+
+function isEditableNumericInput(field) {
+  if (
+    !(field instanceof HTMLInputElement) ||
+    field.disabled ||
+    field.readOnly ||
+    field.type === "hidden"
+  ) {
+    return false;
+  }
+
+  return (
+    field.classList.contains("number-input") ||
+    field.type === "number" ||
+    field.inputMode === "numeric" ||
+    field.inputMode === "decimal"
+  );
 }
 
 function showStartupRecovery(error) {
