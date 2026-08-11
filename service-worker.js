@@ -2,7 +2,7 @@ const APP_VERSION = "4.0";
 const PWA_ID = "/737-OPS/";
 const CACHE_PREFIX = "737-ops-v";
 // Bump this for every worker or shell change made without an APP_VERSION change.
-const CACHE_REVISION = "r1";
+const CACHE_REVISION = "r2";
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-${CACHE_REVISION}`;
 const STAGING_CACHE_NAME = `${CACHE_NAME}-staging`;
 const RELEASE_MARKER_URL = "./__737_ops_release_ready__";

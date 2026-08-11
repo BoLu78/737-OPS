@@ -371,6 +371,43 @@
         color: var(--text);
       }
 
+      .tlb-heading-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .button.tlb-clear-button {
+        width: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border-color: #e53935;
+        border-radius: 11px;
+        background: #e53935;
+        box-shadow: 0 5px 12px rgba(229, 57, 53, 0.24);
+        color: #fff;
+      }
+
+      .button.tlb-clear-button:focus-visible {
+        outline: 3px solid rgba(229, 57, 53, 0.32);
+        outline-offset: 2px;
+      }
+
+      .tlb-calculated-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      @media (min-width: 440px) {
+        .tlb-calculated-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
       .fuel-calculated-panel {
         display: grid;
         gap: 8px;
@@ -1607,18 +1644,53 @@
             </div>
 
             <div class="card stack">
-              <h2>TLB Fuel Data</h2>
+              <div class="tlb-heading-row">
+                <h2>TLB Fuel Data</h2>
+                <button
+                  class="button tlb-clear-button"
+                  type="button"
+                  id="tlb-clear-button"
+                  aria-label="Clear TLB Fuel Data"
+                >
+                  <svg
+                    class="fuel-clear-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M8 6V4h8v2"></path>
+                    <path d="M19 6l-1 14H6L5 6"></path>
+                    <path d="M10 11v5"></path>
+                    <path d="M14 11v5"></path>
+                  </svg>
+                </button>
+              </div>
               <div class="field">
-                <label for="fuel-requested-fuel">Planned Uplift (kg)</label>
+                <label for="fuel-requested-fuel">Block Fuel (kg)</label>
                 <input
                   id="fuel-requested-fuel"
-                  name="requestedFuel"
+                  name="blockFuel"
                   class="input number-input"
                   type="text"
                   inputmode="numeric"
                   pattern="[0-9]*"
                   autocomplete="off"
                 >
+              </div>
+              <div class="tlb-calculated-grid">
+                <div class="fuel-calculated-panel">
+                  <span class="fuel-calculated-label">Estimated Volume @ 0.800 kg/L</span>
+                  <output id="fuel-estimated-litres" class="fuel-calculated-value">--</output>
+                </div>
+                <div class="fuel-calculated-panel">
+                  <span class="fuel-calculated-label">Planned Uplift</span>
+                  <output id="fuel-planned-uplift" class="fuel-calculated-value">--</output>
+                </div>
               </div>
               <div class="fuel-table-wrap">
                 <table class="fuel-table" aria-label="TLB fuel data">

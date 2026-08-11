@@ -3,6 +3,8 @@ const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
 const FUEL_STORAGE_KEY = "737OpsFuelState";
+const FUEL_ESTIMATE_DENSITY_KG_PER_L = 0.8;
+const FUEL_DEFAULT_MAIN_TANK_KG = 3800;
 const FUEL_CAPACITY_BY_FAMILY = {
   NG: {
     label: "B737 NG",
@@ -720,6 +722,7 @@ const form = document.getElementById("fuel-form");
 const inputScreen = document.getElementById("input-screen");
 const resultsScreen = document.getElementById("results-screen");
 const clearButton = document.getElementById("clear-button");
+const tlbClearButton = document.getElementById("tlb-clear-button");
 const banner = document.getElementById("results-banner");
 const bannerLabel = document.getElementById("banner-label");
 const bannerTitle = document.getElementById("banner-title");
@@ -741,6 +744,8 @@ const fuelOutputNodes = {
   totalDepart: document.getElementById("fuel-total-depart"),
   burnedTotal: document.getElementById("fuel-burned-total"),
   remainedTotal: document.getElementById("fuel-remained-total"),
+  estimatedLitres: document.getElementById("fuel-estimated-litres"),
+  plannedUplift: document.getElementById("fuel-planned-uplift"),
 };
 const acnForm = document.getElementById("acn-form");
 const acnValidationMessage = document.getElementById("acn-validation-message");
@@ -973,6 +978,8 @@ function initializeFuelModule() {
   form.addEventListener("input", handleFuelFormInput);
   form.addEventListener("change", handleFuelFormChange);
 
+  tlbClearButton.addEventListener("click", clearTlbFuelData);
+
   clearButton.addEventListener("click", () => {
     resetFuelManualOverrides();
     form.reset();
@@ -1148,13 +1155,39 @@ function updateToleranceText() {
 }
 
 function handleFuelFormInput(event) {
+  prepareFuelAutomaticSync(event.target);
   markFuelManualOverride(event.target);
   updateFuelCheck();
 }
 
 function handleFuelFormChange(event) {
+  prepareFuelAutomaticSync(event.target);
   markFuelManualOverride(event.target);
   updateFuelCheck();
+}
+
+function prepareFuelAutomaticSync(target) {
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  if (target.name === "blockFuel") {
+    fuelManualOverrides.departLeft = false;
+    fuelManualOverrides.departCenter = false;
+    fuelManualOverrides.departRight = false;
+    return;
+  }
+
+  const remainedToBefore = {
+    remainedLeft: "beforeLeft",
+    remainedCenter: "beforeCenter",
+    remainedRight: "beforeRight",
+  };
+  const beforeFieldName = remainedToBefore[target.name];
+
+  if (beforeFieldName) {
+    fuelManualOverrides[beforeFieldName] = false;
+  }
 }
 
 function markFuelManualOverride(target) {
@@ -1178,6 +1211,30 @@ function resetFuelManualOverrides() {
   };
 }
 
+function clearTlbFuelData() {
+  form.elements.blockFuel.value = "";
+
+  [
+    "beforeLeft",
+    "beforeCenter",
+    "beforeRight",
+    "departLeft",
+    "departCenter",
+    "departRight",
+  ].forEach((fieldName) => {
+    form.elements[fieldName].value = "";
+  });
+
+  fuelManualOverrides.beforeLeft = true;
+  fuelManualOverrides.beforeCenter = true;
+  fuelManualOverrides.beforeRight = true;
+  fuelManualOverrides.departLeft = false;
+  fuelManualOverrides.departCenter = false;
+  fuelManualOverrides.departRight = false;
+  updateFuelCheck();
+  form.elements.blockFuel.focus();
+}
+
 function readInputValues() {
   const state = readFuelCheckState();
 
@@ -1194,7 +1251,7 @@ function readFuelCheckState() {
   const densityUnit = form.elements.densityUnit.value;
   const volumeUnit = form.elements.volumeUnit.value;
   const fuelCapacity = getFuelCapacityForSelectedAircraft();
-  const requestedFuel = parseFuelNumberState(form.elements.requestedFuel.value, {
+  const blockFuel = parseFuelNumberState(form.elements.blockFuel.value, {
     positive: false,
     integer: true,
   });
@@ -1275,7 +1332,7 @@ function readFuelCheckState() {
     densityValue.empty;
   const hasInvalidFields =
     parsedTanks.some((tank) => tank.before.invalid || tank.depart.invalid) ||
-    requestedFuel.invalid ||
+    blockFuel.invalid ||
     actualVolume.invalid ||
     densityValue.invalid;
   const hasNegativeTankUplift = parsedTanks.some(
@@ -1293,10 +1350,10 @@ function readFuelCheckState() {
           getFuelTankMax(tank.key, fuelCapacity)
         )}.`
     );
-  const requestedFuelOverMax =
-    !requestedFuel.empty &&
-    !requestedFuel.invalid &&
-    requestedFuel.value > fuelCapacity.totalMax;
+  const blockFuelOverMax =
+    !blockFuel.empty &&
+    !blockFuel.invalid &&
+    blockFuel.value > fuelCapacity.totalMax;
   const totalDepartOverMax = totalDepart !== null && totalDepart > fuelCapacity.totalMax;
   const hasPositiveTlbUplift = totalUplift !== null && totalUplift > 0;
   const totalUpliftMatchesDepartMinusBefore =
@@ -1313,13 +1370,13 @@ function readFuelCheckState() {
     errors.push("Enter valid positive receipt values and non-negative tank values.");
   }
 
-  if (requestedFuel.invalid) {
-    errors.push("Planned Uplift must be a valid whole kg value.");
+  if (blockFuel.invalid) {
+    errors.push("Block Fuel must be a valid whole kg value.");
   }
 
-  if (requestedFuelOverMax) {
+  if (blockFuelOverMax) {
     errors.push(
-      `Planned Uplift exceeds ${fuelCapacity.label} usable fuel capacity of ${formatFuelKg(
+      `Block Fuel exceeds ${fuelCapacity.label} usable fuel capacity of ${formatFuelKg(
         fuelCapacity.totalMax
       )}.`
     );
@@ -1338,7 +1395,7 @@ function readFuelCheckState() {
   }
 
   if (hasNegativeTankUplift) {
-    errors.push("Planned Uplift is lower than the current fuel on board in one or more tanks.");
+    errors.push("Depart fuel is lower than the current fuel on board in one or more tanks.");
   }
 
   if (!hasIncompleteFields && !hasInvalidFields && !hasPositiveTlbUplift) {
@@ -1365,9 +1422,9 @@ function readFuelCheckState() {
     values: {
       densityUnit,
       volumeUnit,
-      requestedFuelState: requestedFuel,
-      requestedFuelOverMax,
-      requestedFuel: requestedFuel.value,
+      blockFuelState: blockFuel,
+      blockFuelOverMax,
+      blockFuel: blockFuel.value,
       totalDepartOverMax,
       fuelCapacity,
       actualVolumeState: actualVolume,
@@ -1474,8 +1531,8 @@ function renderFuelCheckInputs(state) {
     negative: state.values.totalUplift !== null && state.values.totalUplift < 0,
   });
   setFuelFieldValidity(
-    form.elements.requestedFuel,
-    state.values.requestedFuelState.invalid || state.values.requestedFuelOverMax
+    form.elements.blockFuel,
+    state.values.blockFuelState.invalid || state.values.blockFuelOverMax
   );
   setFuelFieldValidity(form.elements.actualVolume, state.values.actualVolumeState.invalid);
   setFuelFieldValidity(form.elements.densityValue, state.values.densityValueState.invalid);
@@ -1490,11 +1547,29 @@ function renderFuelCheckInputs(state) {
       : "";
   fuelCalculatedKgs.textContent =
     state.values.calculatedKgs === null ? "--" : formatFuelKg(state.values.calculatedKgs);
+
+  const arrivalState = readArrivalFuelState();
+  const hasValidBlockFuel =
+    state.values.blockFuel !== null && !state.values.blockFuelOverMax;
+  const estimatedLitres = hasValidBlockFuel
+    ? state.values.blockFuel / FUEL_ESTIMATE_DENSITY_KG_PER_L
+    : null;
+  const plannedUplift =
+    hasValidBlockFuel &&
+    arrivalState.totalRemained !== null &&
+    state.values.blockFuel >= arrivalState.totalRemained
+      ? state.values.blockFuel - arrivalState.totalRemained
+      : null;
+
+  fuelOutputNodes.estimatedLitres.textContent =
+    estimatedLitres === null ? "--" : formatFuelLiters(estimatedLitres);
+  fuelOutputNodes.plannedUplift.textContent =
+    plannedUplift === null ? "--" : formatFuelKg(plannedUplift);
 }
 
 function syncDerivedFuelFields() {
   syncFuelBeforeFromRemained();
-  syncFuelDepartFromRequested();
+  syncFuelDepartFromBlockFuel();
 }
 
 function syncFuelBeforeFromRemained() {
@@ -1515,18 +1590,18 @@ function syncFuelBeforeFromRemained() {
   });
 }
 
-function syncFuelDepartFromRequested() {
-  const requestedFuel = parseFuelNumberState(form.elements.requestedFuel.value, {
+function syncFuelDepartFromBlockFuel() {
+  const blockFuel = parseFuelNumberState(form.elements.blockFuel.value, {
     positive: false,
     integer: true,
   });
   const fuelCapacity = getFuelCapacityForSelectedAircraft();
   const distribution =
-    requestedFuel.empty ||
-    requestedFuel.invalid ||
-    requestedFuel.value > fuelCapacity.totalMax
+    blockFuel.empty ||
+    blockFuel.invalid ||
+    blockFuel.value > fuelCapacity.totalMax
       ? null
-      : calculateRequestedFuelDistribution(requestedFuel.value, fuelCapacity);
+      : calculateBlockFuelDistribution(blockFuel.value);
 
   [
     ["departLeft", "left"],
@@ -1554,22 +1629,16 @@ function getFuelTankMax(tankKey, fuelCapacity) {
   return tankKey === "center" ? fuelCapacity.centerMax : fuelCapacity.mainTankMax;
 }
 
-function calculateRequestedFuelDistribution(requestedFuel, fuelCapacity) {
-  const combinedMainMax = fuelCapacity.mainTankMax * 2;
+function calculateBlockFuelDistribution(blockFuel) {
+  const centerFuel = blockFuel - (FUEL_DEFAULT_MAIN_TANK_KG * 2);
 
-  if (requestedFuel <= combinedMainMax) {
-    return {
-      left: Math.ceil(requestedFuel / 2),
-      center: 0,
-      right: Math.floor(requestedFuel / 2),
-    };
-  }
-
-  return {
-    left: fuelCapacity.mainTankMax,
-    center: requestedFuel - combinedMainMax,
-    right: fuelCapacity.mainTankMax,
-  };
+  return centerFuel < 0
+    ? null
+    : {
+        left: FUEL_DEFAULT_MAIN_TANK_KG,
+        center: centerFuel,
+        right: FUEL_DEFAULT_MAIN_TANK_KG,
+      };
 }
 
 function readArrivalFuelState() {
@@ -1628,7 +1697,7 @@ function renderArrivalFuelTotals() {
 function getFuelCheckStoredValues() {
   return {
     fuelAircraftType: form.elements.fuelAircraftType.value,
-    requestedFuel: form.elements.requestedFuel.value,
+    blockFuel: form.elements.blockFuel.value,
     beforeLeft: form.elements.beforeLeft.value,
     beforeCenter: form.elements.beforeCenter.value,
     beforeRight: form.elements.beforeRight.value,
@@ -1680,7 +1749,7 @@ function restoreFuelCheckState() {
     }
 
     Object.entries(storedValues).forEach(([key, value]) => {
-      if (key === "manualOverrides" || key === "fuelAircraftType") {
+      if (key === "manualOverrides" || key === "fuelAircraftType" || key === "requestedFuel") {
         return;
       }
 
@@ -1692,6 +1761,13 @@ function restoreFuelCheckState() {
 
       field.value = value;
     });
+
+    if (
+      typeof storedValues.blockFuel !== "string" &&
+      typeof storedValues.requestedFuel === "string"
+    ) {
+      form.elements.blockFuel.value = storedValues.requestedFuel;
+    }
   } catch {
     // Ignore malformed stored data and keep the module usable.
   }
