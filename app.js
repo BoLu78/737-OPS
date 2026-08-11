@@ -1,4 +1,5 @@
-const APP_VERSION = "4.0";
+// Increment sequentially for every functional release: 4.1, 4.2, 4.3, ...
+const APP_VERSION = "4.1";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1255,6 +1256,7 @@ function readFuelCheckState() {
     positive: false,
     integer: true,
   });
+  const blockFuelValue = blockFuel.empty ? 0 : blockFuel.value;
   const tanks = [
     {
       key: "left",
@@ -1278,13 +1280,17 @@ function readFuelCheckState() {
   const parsedTanks = tanks.map((tank) => {
     const before = parseFuelNumberState(tank.beforeField.value, { positive: false });
     const depart = parseFuelNumberState(tank.departField.value, { positive: false });
+    const beforeValue = before.empty ? 0 : before.value;
+    const departValue = depart.empty ? 0 : depart.value;
     const uplift =
-      before.value !== null && depart.value !== null ? depart.value - before.value : null;
+      beforeValue !== null && departValue !== null ? departValue - beforeValue : null;
 
     return {
       ...tank,
       before,
+      beforeValue,
       depart,
+      departValue,
       uplift,
     };
   });
@@ -1294,8 +1300,8 @@ function readFuelCheckState() {
   const densityValue = parseFuelNumberState(form.elements.densityValue.value, {
     positive: true,
   });
-  const beforeValues = parsedTanks.map((tank) => tank.before.value);
-  const departValues = parsedTanks.map((tank) => tank.depart.value);
+  const beforeValues = parsedTanks.map((tank) => tank.beforeValue);
+  const departValues = parsedTanks.map((tank) => tank.departValue);
   const upliftValues = parsedTanks.map((tank) => tank.uplift);
   const totalBefore = beforeValues.every((value) => value !== null)
     ? beforeValues.reduce((sum, value) => sum + value, 0)
@@ -1326,10 +1332,7 @@ function readFuelCheckState() {
     actualVolumeLiters !== null && densityKgPerL !== null
       ? actualVolumeLiters * densityKgPerL
       : null;
-  const hasIncompleteFields =
-    parsedTanks.some((tank) => tank.before.empty || tank.depart.empty) ||
-    actualVolume.empty ||
-    densityValue.empty;
+  const hasIncompleteFields = actualVolume.empty || densityValue.empty;
   const hasInvalidFields =
     parsedTanks.some((tank) => tank.before.invalid || tank.depart.invalid) ||
     blockFuel.invalid ||
@@ -1351,9 +1354,8 @@ function readFuelCheckState() {
         )}.`
     );
   const blockFuelOverMax =
-    !blockFuel.empty &&
     !blockFuel.invalid &&
-    blockFuel.value > fuelCapacity.totalMax;
+    blockFuelValue > fuelCapacity.totalMax;
   const totalDepartOverMax = totalDepart !== null && totalDepart > fuelCapacity.totalMax;
   const hasPositiveTlbUplift = totalUplift !== null && totalUplift > 0;
   const totalUpliftMatchesDepartMinusBefore =
@@ -1424,7 +1426,7 @@ function readFuelCheckState() {
       volumeUnit,
       blockFuelState: blockFuel,
       blockFuelOverMax,
-      blockFuel: blockFuel.value,
+      blockFuel: blockFuelValue,
       totalDepartOverMax,
       fuelCapacity,
       actualVolumeState: actualVolume,
@@ -1550,14 +1552,13 @@ function renderFuelCheckInputs(state) {
 
   const arrivalState = readArrivalFuelState();
   const hasValidBlockFuel =
-    state.values.blockFuel !== null && !state.values.blockFuelOverMax;
+    !state.values.blockFuelState.invalid && !state.values.blockFuelOverMax;
   const estimatedLitres = hasValidBlockFuel
     ? state.values.blockFuel / FUEL_ESTIMATE_DENSITY_KG_PER_L
     : null;
   const plannedUplift =
     hasValidBlockFuel &&
-    arrivalState.totalRemained !== null &&
-    state.values.blockFuel >= arrivalState.totalRemained
+    arrivalState.totalRemained !== null
       ? state.values.blockFuel - arrivalState.totalRemained
       : null;
 
@@ -1632,13 +1633,19 @@ function getFuelTankMax(tankKey, fuelCapacity) {
 function calculateBlockFuelDistribution(blockFuel) {
   const centerFuel = blockFuel - (FUEL_DEFAULT_MAIN_TANK_KG * 2);
 
-  return centerFuel < 0
-    ? null
-    : {
-        left: FUEL_DEFAULT_MAIN_TANK_KG,
-        center: centerFuel,
-        right: FUEL_DEFAULT_MAIN_TANK_KG,
-      };
+  if (centerFuel < 0) {
+    return {
+      left: Math.ceil(blockFuel / 2),
+      center: 0,
+      right: Math.floor(blockFuel / 2),
+    };
+  }
+
+  return {
+    left: FUEL_DEFAULT_MAIN_TANK_KG,
+    center: centerFuel,
+    right: FUEL_DEFAULT_MAIN_TANK_KG,
+  };
 }
 
 function readArrivalFuelState() {
@@ -1659,11 +1666,11 @@ function readArrivalFuelState() {
   });
   const burnedValues = [burnedLeft, burnedRight];
   const remainedValues = [remainedLeft, remainedCenter, remainedRight];
-  const totalBurned = burnedValues.every((field) => !field.empty && !field.invalid)
-    ? burnedValues.reduce((sum, field) => sum + field.value, 0)
+  const totalBurned = burnedValues.every((field) => !field.invalid)
+    ? burnedValues.reduce((sum, field) => sum + (field.empty ? 0 : field.value), 0)
     : null;
-  const totalRemained = remainedValues.every((field) => !field.empty && !field.invalid)
-    ? remainedValues.reduce((sum, field) => sum + field.value, 0)
+  const totalRemained = remainedValues.every((field) => !field.invalid)
+    ? remainedValues.reduce((sum, field) => sum + (field.empty ? 0 : field.value), 0)
     : null;
 
   return {
