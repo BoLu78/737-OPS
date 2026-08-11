@@ -1,5 +1,5 @@
-// Increment sequentially for every functional release: 4.1, 4.2, 4.3, ...
-const APP_VERSION = "4.1";
+// Increment sequentially for every functional release.
+const APP_VERSION = "4.2";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -748,7 +748,7 @@ const fuelOutputNodes = {
   totalDepart: document.getElementById("fuel-total-depart"),
   burnedTotal: document.getElementById("fuel-burned-total"),
   remainedTotal: document.getElementById("fuel-remained-total"),
-  estimatedLitres: document.getElementById("fuel-estimated-litres"),
+  estimatedUpliftLitres: document.getElementById("fuel-estimated-litres"),
   plannedUplift: document.getElementById("fuel-planned-uplift"),
 };
 const acnForm = document.getElementById("acn-form");
@@ -1559,19 +1559,20 @@ function renderFuelCheckInputs(state) {
   const arrivalState = readArrivalFuelState();
   const hasValidBlockFuel =
     !state.values.blockFuelState.invalid && !state.values.blockFuelOverMax;
-  const estimatedLitres = hasValidBlockFuel
-    ? state.values.blockFuel / FUEL_ESTIMATE_DENSITY_KG_PER_L
-    : null;
   const plannedUplift =
     hasValidBlockFuel &&
     arrivalState.totalRemained !== null
       ? state.values.blockFuel - arrivalState.totalRemained
       : null;
+  const estimatedUpliftLitres =
+    plannedUplift === null
+      ? null
+      : plannedUplift / FUEL_ESTIMATE_DENSITY_KG_PER_L;
 
-  fuelOutputNodes.estimatedLitres.textContent =
-    estimatedLitres === null ? "--" : formatFuelLiters(estimatedLitres);
   fuelOutputNodes.plannedUplift.textContent =
     plannedUplift === null ? "--" : formatFuelKg(plannedUplift);
+  fuelOutputNodes.estimatedUpliftLitres.textContent =
+    estimatedUpliftLitres === null ? "--" : formatFuelLiters(estimatedUpliftLitres);
 }
 
 function syncDerivedFuelFields() {
