@@ -724,6 +724,9 @@ const inputScreen = document.getElementById("input-screen");
 const resultsScreen = document.getElementById("results-screen");
 const clearButton = document.getElementById("clear-button");
 const tlbClearButton = document.getElementById("tlb-clear-button");
+const fuelRemainedTransferButton = document.getElementById(
+  "fuel-remained-transfer-button"
+);
 const banner = document.getElementById("results-banner");
 const bannerLabel = document.getElementById("banner-label");
 const bannerTitle = document.getElementById("banner-title");
@@ -980,6 +983,7 @@ function initializeFuelModule() {
   form.addEventListener("change", handleFuelFormChange);
 
   tlbClearButton.addEventListener("click", clearTlbFuelData);
+  fuelRemainedTransferButton.addEventListener("click", transferFuelRemainedToTlb);
 
   clearButton.addEventListener("click", () => {
     resetFuelManualOverrides();
@@ -1176,18 +1180,6 @@ function prepareFuelAutomaticSync(target) {
     fuelManualOverrides.departLeft = false;
     fuelManualOverrides.departCenter = false;
     fuelManualOverrides.departRight = false;
-    return;
-  }
-
-  const remainedToBefore = {
-    remainedLeft: "beforeLeft",
-    remainedCenter: "beforeCenter",
-    remainedRight: "beforeRight",
-  };
-  const beforeFieldName = remainedToBefore[target.name];
-
-  if (beforeFieldName) {
-    fuelManualOverrides[beforeFieldName] = false;
   }
 }
 
@@ -1232,6 +1224,20 @@ function clearTlbFuelData() {
   fuelManualOverrides.departLeft = false;
   fuelManualOverrides.departCenter = false;
   fuelManualOverrides.departRight = false;
+  updateFuelCheck();
+  form.elements.blockFuel.focus();
+}
+
+function transferFuelRemainedToTlb() {
+  [
+    ["remainedLeft", "beforeLeft"],
+    ["remainedCenter", "beforeCenter"],
+    ["remainedRight", "beforeRight"],
+  ].forEach(([sourceName, targetName]) => {
+    form.elements[targetName].value = form.elements[sourceName].value;
+    fuelManualOverrides[targetName] = true;
+  });
+
   updateFuelCheck();
   form.elements.blockFuel.focus();
 }
@@ -1569,26 +1575,7 @@ function renderFuelCheckInputs(state) {
 }
 
 function syncDerivedFuelFields() {
-  syncFuelBeforeFromRemained();
   syncFuelDepartFromBlockFuel();
-}
-
-function syncFuelBeforeFromRemained() {
-  [
-    ["remainedLeft", "beforeLeft"],
-    ["remainedCenter", "beforeCenter"],
-    ["remainedRight", "beforeRight"],
-  ].forEach(([sourceName, targetName]) => {
-    if (fuelManualOverrides[targetName]) {
-      return;
-    }
-
-    const sourceState = parseFuelNumberState(form.elements[sourceName].value, {
-      positive: false,
-    });
-    form.elements[targetName].value =
-      sourceState.empty || sourceState.invalid ? "" : String(sourceState.value);
-  });
 }
 
 function syncFuelDepartFromBlockFuel() {
