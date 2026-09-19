@@ -1,8 +1,3 @@
 .DS_Store
-
-# Private company documents and extracted content stay local.
-manuals/library/
-*.pdf
-
-# Generated publication archives.
-dist/
+.DS_Store
+.DS_Store

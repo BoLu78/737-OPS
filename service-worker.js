@@ -1,8 +1,8 @@
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.3";
 const PWA_ID = "/737-OPS/";
 const CACHE_PREFIX = "737-ops-v";
 // Bump this for every worker or shell change made without an APP_VERSION change.
-const CACHE_REVISION = "r4";
+const CACHE_REVISION = "r1";
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}-${CACHE_REVISION}`;
 const STAGING_CACHE_NAME = `${CACHE_NAME}-staging`;
 const RELEASE_MARKER_URL = "./__737_ops_release_ready__";
@@ -10,13 +10,7 @@ const FALLBACK_CACHE_PARAM = "__737_fallback";
 const APP_SHELL_URL = "./";
 const APP_SCRIPT_URL = "./app.js";
 const APP_MANIFEST_URL = "./manifest.json";
-const MANUALS_PRECACHE_URLS = [
-  "./manuals.html",
-  "./manuals/assistant.css",
-  "./manuals/assistant.js",
-];
 const PRECACHE_URLS = [
-  ...MANUALS_PRECACHE_URLS,
   APP_SHELL_URL,
   APP_SCRIPT_URL,
   APP_MANIFEST_URL,
@@ -610,15 +604,6 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(request.url);
 
   if (requestUrl.origin !== self.location.origin) {
-    return;
-  }
-
-  // Manuals is a separate document: never substitute the calculator home shell.
-  if (requestUrl.pathname === new URL("./manuals.html", self.location.href).pathname) {
-    event.respondWith((async () => {
-      const cached = await matchNamedRelease("./manuals.html", CACHE_NAME);
-      return cached || fetch(request);
-    })());
     return;
   }
 
