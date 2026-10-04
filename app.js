@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.3";
+const APP_VERSION = "4.4";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -709,16 +709,19 @@ const fuelView = document.getElementById("fuelView");
 const tripInfoB737View = document.getElementById("tripInfoB737View");
 const acnView = document.getElementById("acnView");
 const vdpView = document.getElementById("vdpView");
+const descentView = document.getElementById("descentView");
 const openBrakeCoolingBtn = document.getElementById("openBrakeCoolingBtn");
 const openFuelBtn = document.getElementById("openFuelBtn");
 const openAcnBtn = document.getElementById("openAcnBtn");
 const openTripInfoBtn = document.getElementById("openTripInfoBtn");
 const openVdpBtn = document.getElementById("openVdpBtn");
+const openDescentBtn = document.getElementById("openDescentBtn");
 const backFromBrakeCoolingBtn = document.getElementById("backFromBrakeCoolingBtn");
 const backFromFuelBtn = document.getElementById("backFromFuelBtn");
 const backFromAcnBtn = document.getElementById("backFromAcnBtn");
 const backFromTripInfoB737Btn = document.getElementById("backFromTripInfoB737Btn");
 const backFromVdpBtn = document.getElementById("backFromVdpBtn");
+const backFromDescentBtn = document.getElementById("backFromDescentBtn");
 const form = document.getElementById("fuel-form");
 const inputScreen = document.getElementById("input-screen");
 const resultsScreen = document.getElementById("results-screen");
@@ -781,6 +784,11 @@ const vdpClearButton = document.getElementById("vdp-clear-button");
 const vdpResultSection = document.getElementById("vdp-result-section");
 const vdpResultsList = document.getElementById("vdp-results-list");
 const vdpDiagram = document.getElementById("vdp-diagram");
+const descentForm = document.getElementById("descent-form");
+const descentValidationMessage = document.getElementById("descent-validation-message");
+const descentClearButton = document.getElementById("descent-clear-button");
+const descentResultSection = document.getElementById("descent-result-section");
+const descentResultsList = document.getElementById("descent-results-list");
 const tripInfoB737Form = document.getElementById("tripInfoB737-form");
 const tripInfoB737ValidationMessage = document.getElementById("tripInfoB737-validation-message");
 const tripInfoB737ResetButton = document.getElementById("tripInfoB737-reset-button");
@@ -978,6 +986,13 @@ function attachHomeEventListeners() {
       return;
     }
     showVdpView();
+  });
+
+  openDescentBtn.addEventListener("click", () => {
+    if (initializeModuleOnce("descent", initializeDescentModule) === null) {
+      return;
+    }
+    showDescentView();
   });
 }
 
@@ -1985,7 +2000,7 @@ function renderKeyValueList(container, rows) {
 }
 
 function showAppView(activeView) {
-  [homeView, brakeCoolingView, fuelView, tripInfoB737View, acnView, vdpView].forEach((view) => {
+  [homeView, brakeCoolingView, fuelView, tripInfoB737View, acnView, vdpView, descentView].forEach((view) => {
     const isActive = view === activeView;
     view.hidden = !isActive;
     view.setAttribute("aria-hidden", String(!isActive));
@@ -2011,6 +2026,10 @@ function showAcnView() {
 
 function showVdpView() {
   showAppView(vdpView);
+}
+
+function showDescentView() {
+  showAppView(descentView);
 }
 
 
@@ -2136,6 +2155,117 @@ function showVdpValidation(message) {
 function clearVdpValidation() {
   vdpValidationMessage.textContent = "";
   vdpValidationMessage.hidden = true;
+}
+
+function initializeDescentModule() {
+  descentForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    evaluateDescentModule();
+  });
+  descentForm.addEventListener("input", handleDescentFormChange);
+  descentForm.addEventListener("change", handleDescentFormChange);
+  descentClearButton.addEventListener("click", () => resetDescentModule(true));
+  backFromDescentBtn.addEventListener("click", showHomeView);
+  resetDescentModule(false);
+}
+
+function resetDescentModule(shouldFocus) {
+  descentForm.reset();
+  clearDescentValidation();
+  hideDescentResult();
+
+  if (shouldFocus) {
+    descentForm.elements.altitudeFt.focus();
+  }
+}
+
+function evaluateDescentModule() {
+  clearDescentValidation();
+
+  const values = readDescentInputValues(false);
+  if (!values) {
+    hideDescentResult();
+    return;
+  }
+
+  renderDescentResult(calculateDescentResult(values));
+}
+
+function handleDescentFormChange() {
+  clearDescentValidation();
+
+  if (descentResultSection.hidden) {
+    return;
+  }
+
+  const values = readDescentInputValues(true);
+  if (!values) {
+    hideDescentResult();
+    return;
+  }
+
+  renderDescentResult(calculateDescentResult(values));
+}
+
+function readDescentInputValues(silent) {
+  const fields = [
+    ["altitudeFt", "altitude to lose"],
+    ["distanceNm", "distance"],
+    ["groundSpeedKt", "ground speed"],
+  ];
+  const values = {};
+
+  for (const [name, label] of fields) {
+    const value = parsePositiveNumber(descentForm.elements[name].value);
+    if (value === null) {
+      if (!silent) {
+        showDescentValidation(`Enter a valid ${label} greater than 0.`);
+      }
+      return null;
+    }
+    values[name] = value;
+  }
+
+  return values;
+}
+
+function calculateDescentResult(values) {
+  const minutes = (values.distanceNm / values.groundSpeedKt) * 60;
+  const feetPerMinute = values.altitudeFt / minutes;
+  const feetPerNmRequired = values.altitudeFt / values.distanceNm;
+  const angleDeg = (Math.atan(feetPerNmRequired / FEET_PER_NM) * 180) / Math.PI;
+
+  return { ...values, minutes, feetPerMinute, feetPerNmRequired, angleDeg };
+}
+
+function renderDescentResult(result) {
+  descentResultSection.hidden = false;
+
+  const totalSeconds = Math.round(result.minutes * 60);
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = String(totalSeconds % 60).padStart(2, "0");
+
+  renderKeyValueList(descentResultsList, [
+    ["Required V/S", `${Math.round(result.feetPerMinute)} ft/min`],
+    ["Time to go", `${mm}:${ss} min`],
+    ["Gradient", `${Math.round(result.feetPerNmRequired)} ft/NM`],
+    ["Path angle", `${result.angleDeg.toFixed(1)}°`],
+  ]);
+}
+
+function hideDescentResult() {
+  descentResultSection.hidden = true;
+  descentResultsList.textContent = "";
+}
+
+function showDescentValidation(message) {
+  descentValidationMessage.textContent = message;
+  descentValidationMessage.hidden = false;
+}
+
+function clearDescentValidation() {
+  descentValidationMessage.textContent = "";
+  descentValidationMessage.hidden = true;
 }
 
 function formatVdpAngle(value) {
