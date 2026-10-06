@@ -1,4 +1,4 @@
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 const PWA_ID = "/737-OPS/";
 const CACHE_PREFIX = "737-ops-v";
 // Bump this for every worker or shell change made without an APP_VERSION change.
