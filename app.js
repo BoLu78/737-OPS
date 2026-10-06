@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1214,15 +1214,39 @@ function updateToleranceText() {
 }
 
 function handleFuelFormInput(event) {
+  mirrorFuelRemainedAndBefore(event.target);
   prepareFuelAutomaticSync(event.target);
   markFuelManualOverride(event.target);
   updateFuelCheck();
 }
 
 function handleFuelFormChange(event) {
+  mirrorFuelRemainedAndBefore(event.target);
   prepareFuelAutomaticSync(event.target);
   markFuelManualOverride(event.target);
   updateFuelCheck();
+}
+
+// Fuel Remained e TLB "Before" sono lo stesso dato: scrivere in uno lo copia nell'altro.
+const FUEL_REMAINED_BEFORE_PAIRS = [
+  ["remainedLeft", "beforeLeft"],
+  ["remainedCenter", "beforeCenter"],
+  ["remainedRight", "beforeRight"],
+];
+
+function mirrorFuelRemainedAndBefore(target) {
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  FUEL_REMAINED_BEFORE_PAIRS.forEach(([remainedName, beforeName]) => {
+    if (target.name === remainedName) {
+      form.elements[beforeName].value = target.value;
+      fuelManualOverrides[beforeName] = true;
+    } else if (target.name === beforeName) {
+      form.elements[remainedName].value = target.value;
+    }
+  });
 }
 
 function prepareFuelAutomaticSync(target) {
@@ -1268,6 +1292,9 @@ function clearTlbFuelData() {
     "departLeft",
     "departCenter",
     "departRight",
+    "remainedLeft",
+    "remainedCenter",
+    "remainedRight",
   ].forEach((fieldName) => {
     form.elements[fieldName].value = "";
   });
