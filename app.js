@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.6";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1886,11 +1886,33 @@ function calculateFuelCheck(values) {
   };
 }
 
+function formatSignedFuelKg(value) {
+  const rounded = Math.round(value);
+  const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
+  return `${sign}${formatFuelInteger(Math.abs(rounded))} kg`;
+}
+
+function getFuelPlannedUplift(result) {
+  if (
+    !Number.isFinite(result.blockFuel) ||
+    (result.blockFuelState && result.blockFuelState.invalid) ||
+    result.blockFuelOverMax
+  ) {
+    return null;
+  }
+
+  const arrivalState = readArrivalFuelState();
+  return Number.isFinite(arrivalState.totalRemained)
+    ? result.blockFuel - arrivalState.totalRemained
+    : null;
+}
+
 function renderResults(result) {
-  const stateLabel = result.pass ? "PASS" : "FAIL";
   const comparisonRows = [
     ["Actual Volume", formatFuelLiters(result.actualVolumeLiters)],
-    ["Calculated Fuel", formatFuelKg(result.calculatedKgs)],
+    ["Calculated Fuel (receipt)", formatFuelKg(result.calculatedKgs)],
+    ["Indicated Uplift (gauges)", formatFuelKg(result.totalUplift)],
+    ["Discrepancy", formatSignedFuelKg(result.differenceKg), !result.pass],
     ["Allowed Tolerance", `±${formatFuelInteger(result.tolerance)} kg`],
   ];
   const densityGuidance = getFuelDensityGuidance(result);
@@ -1906,16 +1928,27 @@ function renderResults(result) {
   fuelResultSection.hidden = false;
   banner.classList.toggle("pass", result.pass);
   banner.classList.toggle("fail", !result.pass);
-  bannerLabel.textContent = stateLabel;
-  bannerTitle.textContent = stateLabel;
+  bannerLabel.textContent = "Uplift check · OM-A 8.2.1.3";
+  bannerTitle.textContent = result.pass ? "PASS" : "OUT OF TOLERANCE";
   bannerSubtitle.textContent = result.pass
-    ? "Receipt uplift is within allowed tolerance"
-    : "Receipt uplift is outside allowed tolerance";
+    ? `Discrepancy ${formatSignedFuelKg(result.differenceKg)} within ±${formatFuelInteger(result.tolerance)} kg`
+    : `Discrepancy ${formatSignedFuelKg(result.differenceKg)} exceeds ±${formatFuelInteger(result.tolerance)} kg – further checks per AMM required`;
   fuelResultSection.classList.toggle("fail", !result.pass);
 
   renderKeyValueList(fuelResultsList, comparisonRows);
-  fuelAdvancedList.textContent = "";
-  fuelAdvancedDetails.hidden = true;
+
+  const plannedUplift = getFuelPlannedUplift(result);
+  if (plannedUplift === null) {
+    fuelAdvancedList.textContent = "";
+    fuelAdvancedDetails.hidden = true;
+    return;
+  }
+
+  renderKeyValueList(fuelAdvancedList, [
+    ["Planned Uplift (requested)", formatFuelKg(plannedUplift)],
+    ["Receipt vs Requested", formatSignedFuelKg(result.calculatedKgs - plannedUplift)],
+  ]);
+  fuelAdvancedDetails.hidden = false;
 }
 
 function getFuelDensityGuidance(result) {
