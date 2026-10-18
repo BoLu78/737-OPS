@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.7";
+const APP_VERSION = "4.8";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -1911,8 +1911,8 @@ function renderResults(result) {
   banner.classList.toggle("fail", !result.pass);
   bannerLabel.textContent = "Uplift check · OM-A 8.2.1.3";
   bannerTitle.textContent = result.pass ? "PASS" : "OUT OF TOLERANCE";
-  bannerSubtitle.textContent = result.pass ? "" : "Further checks per AMM required";
-  bannerSubtitle.hidden = result.pass;
+  bannerSubtitle.textContent = "";
+  bannerSubtitle.hidden = true;
   fuelResultSection.classList.toggle("fail", !result.pass);
 
   renderKeyValueList(fuelResultsList, comparisonRows);
