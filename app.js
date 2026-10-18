@@ -1,5 +1,5 @@
 // Increment sequentially for every functional release.
-const APP_VERSION = "4.6";
+const APP_VERSION = "4.7";
 const LBS_TO_KG = 0.45359237;
 const US_GALLON_TO_LITERS = 3.785411784;
 const INVALID_ALERT_MESSAGE = "Complete valid fuel data before final comparison.";
@@ -736,8 +736,6 @@ const bannerTitle = document.getElementById("banner-title");
 const bannerSubtitle = document.getElementById("banner-subtitle");
 const fuelResultSection = document.getElementById("fuel-result-section");
 const fuelResultsList = document.getElementById("fuel-results-list");
-const fuelAdvancedDetails = document.getElementById("fuel-advanced-details");
-const fuelAdvancedList = document.getElementById("fuel-advanced-list");
 const fuelValidationMessage = document.getElementById("fuel-validation-message");
 const fuelVolumeConverted = document.getElementById("fuel-volume-converted");
 const fuelDensityConverted = document.getElementById("fuel-density-converted");
@@ -1574,8 +1572,6 @@ function updateFuelCheck({ persist = true } = {}) {
     fuelResultSection.hidden = true;
     fuelResultSection.classList.remove("fail");
     fuelResultsList.textContent = "";
-    fuelAdvancedList.textContent = "";
-    fuelAdvancedDetails.hidden = true;
 
     if (state.errors.length > 0) {
       fuelValidationMessage.hidden = false;
@@ -1892,21 +1888,6 @@ function formatSignedFuelKg(value) {
   return `${sign}${formatFuelInteger(Math.abs(rounded))} kg`;
 }
 
-function getFuelPlannedUplift(result) {
-  if (
-    !Number.isFinite(result.blockFuel) ||
-    (result.blockFuelState && result.blockFuelState.invalid) ||
-    result.blockFuelOverMax
-  ) {
-    return null;
-  }
-
-  const arrivalState = readArrivalFuelState();
-  return Number.isFinite(arrivalState.totalRemained)
-    ? result.blockFuel - arrivalState.totalRemained
-    : null;
-}
-
 function renderResults(result) {
   const comparisonRows = [
     ["Actual Volume", formatFuelLiters(result.actualVolumeLiters)],
@@ -1930,25 +1911,11 @@ function renderResults(result) {
   banner.classList.toggle("fail", !result.pass);
   bannerLabel.textContent = "Uplift check · OM-A 8.2.1.3";
   bannerTitle.textContent = result.pass ? "PASS" : "OUT OF TOLERANCE";
-  bannerSubtitle.textContent = result.pass
-    ? `Discrepancy ${formatSignedFuelKg(result.differenceKg)} within ±${formatFuelInteger(result.tolerance)} kg`
-    : `Discrepancy ${formatSignedFuelKg(result.differenceKg)} exceeds ±${formatFuelInteger(result.tolerance)} kg – further checks per AMM required`;
+  bannerSubtitle.textContent = result.pass ? "" : "Further checks per AMM required";
+  bannerSubtitle.hidden = result.pass;
   fuelResultSection.classList.toggle("fail", !result.pass);
 
   renderKeyValueList(fuelResultsList, comparisonRows);
-
-  const plannedUplift = getFuelPlannedUplift(result);
-  if (plannedUplift === null) {
-    fuelAdvancedList.textContent = "";
-    fuelAdvancedDetails.hidden = true;
-    return;
-  }
-
-  renderKeyValueList(fuelAdvancedList, [
-    ["Planned Uplift (requested)", formatFuelKg(plannedUplift)],
-    ["Receipt vs Requested", formatSignedFuelKg(result.calculatedKgs - plannedUplift)],
-  ]);
-  fuelAdvancedDetails.hidden = false;
 }
 
 function getFuelDensityGuidance(result) {
